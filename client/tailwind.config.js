@@ -15,8 +15,8 @@ export default {
         between: '#2A2438', // Divider — separates without cutting
 
         // Accents
-        gold:     '#C9A87C', // Candlelight — antique manuscript gold
-        'gold-glow': 'rgba(201, 168, 124, 0.12)', // Ambient corona
+        gold:     '#E8C07A', // Candlelight — brightened for legibility on vault
+        'gold-glow': 'rgba(232, 192, 122, 0.14)', // Ambient corona
         ether:    '#9B8EC4', // Twilight — muted lavender, the dream-state
         witness:  '#C4847A', // The Witness — dusty rose, the human note
 

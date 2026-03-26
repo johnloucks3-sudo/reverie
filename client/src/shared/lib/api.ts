@@ -1,7 +1,7 @@
 // REVERIE API client — proxy to REVERIE FastAPI (Hetzner)
 // All Thunderbird MCP access goes through api.d2mluxury.quest (YOGA)
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
+const API_BASE = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE ?? ''
 
 function getToken(): string | null {
   return localStorage.getItem('reverie_token')
