@@ -18,7 +18,7 @@ const queryClient = new QueryClient({
 })
 
 function PrivateRoute({ element }: { element: React.ReactElement }) {
-  const jwt = localStorage.getItem('jwt')
+  const jwt = localStorage.getItem('reverie_token')
   return jwt ? element : <Navigate to="/login" replace />
 }
 

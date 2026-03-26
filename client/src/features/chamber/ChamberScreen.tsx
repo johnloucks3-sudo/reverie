@@ -5,7 +5,7 @@ export default function ChamberScreen() {
   const navigate = useNavigate()
 
   const handleSignOut = () => {
-    localStorage.removeItem('jwt')
+    localStorage.removeItem('reverie_token')
     navigate('/login', { replace: true })
   }
 

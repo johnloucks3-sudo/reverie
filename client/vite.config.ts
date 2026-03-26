@@ -4,6 +4,12 @@ import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 export default defineConfig({
+  define: {
+    // Hardcode API URL so it works even if Cloudflare env var is missing
+    'import.meta.env.VITE_API_URL': JSON.stringify(
+      process.env.VITE_API_URL || 'https://api-reverie.d2mluxury.quest'
+    ),
+  },
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') }
   },
