@@ -1,0 +1,31 @@
+# REVERIE API — FastAPI backend (Hetzner CX21)
+# Phase 1: auth shell + Thunderbird MCP proxy — no database
+
+# Core
+fastapi==0.115.8
+uvicorn[standard]==0.34.0
+pydantic[email]==2.10.6
+pydantic-settings==2.7.1
+
+# Auth — magic link + JWT
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.20
+
+# HTTP — proxy calls to api.d2mluxury.quest (SSE-capable)
+httpx==0.28.1
+httpx-sse==0.4.0
+
+# Gmail OAuth send (uses existing ~/Thunderbird/gmail_token.json)
+google-auth==2.38.0
+google-auth-oauthlib==1.2.1
+google-api-python-client==2.165.0
+
+# Utilities
+python-dotenv==1.0.1
+structlog==24.4.0
+
+# Phase 2 additions (uncomment when persistence needed):
+# sqlalchemy==2.0.38
+# alembic==1.14.1
+# asyncpg==0.30.0

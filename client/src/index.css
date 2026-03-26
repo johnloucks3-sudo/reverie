@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    /* Full-screen mobile: respect notches + status bar */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  body {
+    @apply bg-vault text-vellum font-ui antialiased;
+    min-height: 100dvh;
+    overscroll-behavior: none;
+  }
+
+  /* Scrollbars — near-invisible on dark BG */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-between rounded-full; }
+}
+
+@layer components {
+  /* Cormorant Garamond display utility */
+  .font-display-light {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 300;
+  }
+
+  .font-display-light-italic {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 300;
+    font-style: italic;
+  }
+
+  /* Gold glow on active cards */
+  .glow-gold {
+    box-shadow: 0 0 24px rgba(201, 168, 124, 0.15);
+  }
+
+  /* Accordion panel */
+  .accordion-panel {
+    @apply bg-page border border-between rounded-lg overflow-hidden transition-all duration-300;
+  }
+}

@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REVERIE — WAYFINDER · Tokyo Metro Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: radial-gradient(ellipse at 30% 20%, #1a0f2e 0%, #0a0a18 60%, #000 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      padding: 32px 16px;
+      gap: 20px;
+    }
+
+    .meta-label {
+      font-size: 11px;
+      letter-spacing: 0.3em;
+      color: rgba(168,155,194,0.5);
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    /* Phone shell */
+    .phone {
+      width: 390px;
+      background: #0e0e1c;
+      border-radius: 44px;
+      border: 1.5px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+      box-shadow:
+        0 60px 120px rgba(0,0,0,0.9),
+        0 0 0 0.5px rgba(255,255,255,0.04),
+        inset 0 0 80px rgba(107,91,149,0.04);
+      position: relative;
+    }
+
+    /* Notch */
+    .notch {
+      width: 126px;
+      height: 34px;
+      background: #000;
+      border-radius: 0 0 20px 20px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Status bar */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 28px 4px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* Header */
+    .app-header {
+      padding: 4px 24px 16px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .brand-mark {
+      font-size: 10px;
+      letter-spacing: 0.35em;
+      color: #a89bc2;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .city-chip {
+      background: rgba(168,155,194,0.12);
+      border: 1px solid rgba(168,155,194,0.2);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      color: #a89bc2;
+      letter-spacing: 0.08em;
+    }
+
+    .feature-title {
+      font-size: 26px;
+      font-weight: 300;
+      color: #fff;
+      letter-spacing: 0.03em;
+      line-height: 1.1;
+    }
+
+    .feature-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+      margin-top: 4px;
+      letter-spacing: 0.02em;
+    }
+
+    /* Divider */
+    .divider-line {
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.07), transparent);
+      margin: 0 24px;
+    }
+
+    /* Location cards */
+    .location-section {
+      padding: 16px 20px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .loc-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .loc-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .loc-icon.origin {
+      background: rgba(74,222,128,0.12);
+      border: 1.5px solid rgba(74,222,128,0.3);
+    }
+
+    .loc-icon.dest {
+      background: rgba(244,114,182,0.12);
+      border: 1.5px solid rgba(244,114,182,0.3);
+    }
+
+    .loc-texts { flex: 1; }
+    .loc-tag { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 3px; }
+    .loc-name-en { font-size: 16px; font-weight: 500; color: #fff; }
+    .loc-name-jp { font-size: 13px; color: rgba(255,255,255,0.35); margin-top: 1px; }
+    .loc-code { font-size: 11px; font-weight: 700; color: #e60012; }
+
+    /* Route stat bar */
+    .route-bar {
+      margin: 12px 20px;
+      background: linear-gradient(135deg, rgba(230,0,18,0.08) 0%, rgba(107,91,149,0.08) 100%);
+      border: 1px solid rgba(230,0,18,0.2);
+      border-radius: 18px;
+      padding: 14px 20px;
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr 1px 1fr 1px 1fr;
+      gap: 0;
+      align-items: center;
+    }
+
+    .stat-cell { text-align: center; }
+
+    .stat-val {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      margin-top: 3px;
+    }
+
+    .stat-sub {
+      font-size: 9px;
+      color: #a89bc2;
+      margin-top: 2px;
+    }
+
+    .stat-divider { background: rgba(255,255,255,0.08); height: 32px; }
+
+    .line-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #e60012;
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .line-dir {
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.4);
+      margin-top: 3px;
+    }
+
+    /* Section label */
+    .sec-label {
+      font-size: 9px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.25);
+      padding: 0 24px;
+      margin-bottom: 8px;
+      margin-top: 12px;
+    }
+
+    /* Metro map */
+    .metro-scroll {
+      padding: 0 20px;
+      position: relative;
+    }
+
+    .metro-map {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 20px;
+      padding: 16px 14px 16px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Vertical route rail */
+    .rail {
+      position: absolute;
+      left: 46px;
+      top: 24px;
+      bottom: 24px;
+      width: 4px;
+      border-radius: 2px;
+      background: linear-gradient(to bottom,
+        #4ade80 0%,
+        #e60012 8%,
+        #e60012 92%,
+        #f472b6 100%
+      );
+    }
+
+    .stop-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+    }
+
+    .stop-dot-col {
+      width: 52px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+      z-index: 2;
+    }
+
+    .stop-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #e60012;
+      border: 2.5px solid #0e0e1c;
+      box-shadow: 0 0 0 1.5px #e60012;
+      transition: all 0.2s;
+    }
+
+    .stop-dot.origin-dot {
+      width: 18px;
+      height: 18px;
+      background: #4ade80;
+      border-color: #0e0e1c;
+      box-shadow: 0 0 16px rgba(74,222,128,0.6), 0 0 0 2px #4ade80;
+    }
+
+    .stop-dot.dest-dot {
+      width: 18px;
+      height: 18px;
+      background: #f472b6;
+      border-color: #0e0e1c;
+      box-shadow: 0 0 16px rgba(244,114,182,0.6), 0 0 0 2px #f472b6;
+    }
+
+    .stop-info {
+      flex: 1;
+      padding: 9px 12px 9px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .stop-row:last-child .stop-info { border-bottom: none; }
+
+    .stop-code { font-size: 9px; font-weight: 800; color: #e60012; letter-spacing: 0.12em; margin-bottom: 2px; }
+    .stop-en { font-size: 14px; color: rgba(255,255,255,0.82); font-weight: 500; line-height: 1.2; }
+    .stop-jp { font-size: 13px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+    .stop-en.is-origin { color: #4ade80; font-weight: 700; }
+    .stop-en.is-dest { color: #f472b6; font-weight: 700; }
+    .stop-transfer { font-size: 9px; color: #fbbf24; margin-top: 3px; letter-spacing: 0.04em; }
+
+    .tag-badge {
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 8px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .tag-here { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+    .tag-off  { background: rgba(244,114,182,0.15); color: #f472b6; border: 1px solid rgba(244,114,182,0.3); }
+
+    /* Instructions */
+    .instructions {
+      margin: 12px 20px 0;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 18px;
+      padding: 14px 16px;
+    }
+
+    .inst-title {
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.25);
+      margin-bottom: 10px;
+    }
+
+    .inst-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 9px;
+    }
+
+    .inst-step:last-child { margin-bottom: 0; }
+
+    .inst-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #e60012;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .inst-text {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.55;
+    }
+
+    .inst-text strong { color: rgba(255,255,255,0.92); }
+
+    /* IC note */
+    .ic-strip {
+      margin: 10px 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(251,191,36,0.06);
+      border: 1px solid rgba(251,191,36,0.12);
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+
+    .ic-icon { font-size: 18px; }
+
+    .ic-text {
+      font-size: 11px;
+      color: rgba(255,255,255,0.45);
+      line-height: 1.4;
+    }
+
+    .ic-text strong { color: #fbbf24; }
+
+    /* Bottom safe area */
+    .safe-area { height: 28px; }
+
+    /* Home indicator */
+    .home-indicator {
+      width: 120px;
+      height: 4px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+      margin: 0 auto;
+      margin-bottom: 8px;
+    }
+
+    /* Spec footer */
+    .spec-note {
+      text-align: center;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.15);
+      text-transform: uppercase;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="meta-label">REVERIE · WAYFINDER MODULE · DEMO BUILD · 26 MAR 2026</div>
+
+  <div class="phone">
+
+    <!-- Notch -->
+    <div class="notch"></div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <span style="font-size:14px;">●●●●○ 🛜 ▲</span>
+    </div>
+
+    <!-- Header -->
+    <div class="app-header">
+      <div class="brand-row">
+        <span class="brand-mark">REVERIE · WAYFINDER</span>
+        <span class="city-chip">東京 · Tokyo</span>
+      </div>
+      <div class="feature-title">Tokyo Metro</div>
+      <div class="feature-sub">東京メトロ · Live Navigation</div>
+    </div>
+
+    <div class="divider-line"></div>
+
+    <!-- Locations -->
+    <div class="location-section">
+      <div class="loc-card">
+        <div class="loc-icon origin">📍</div>
+        <div class="loc-texts">
+          <div class="loc-tag">You are here · 現在地</div>
+          <div class="loc-name-en">Ginza</div>
+          <div class="loc-name-jp">銀座 · <span class="loc-code">M-16</span> · Marunouchi Line</div>
+        </div>
+      </div>
+      <div class="loc-card">
+        <div class="loc-icon dest">🎯</div>
+        <div class="loc-texts">
+          <div class="loc-tag">Destination · 目的地</div>
+          <div class="loc-name-en">Shinjuku Station</div>
+          <div class="loc-name-jp">新宿駅 · <span class="loc-code">M-08</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Route Stats -->
+    <div class="route-bar">
+      <div class="stat-cell">
+        <div class="stat-val">~22</div>
+        <div class="stat-label">Minutes</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-cell">
+        <div class="stat-val">8</div>
+        <div class="stat-label">Stops</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-cell">
+        <div class="stat-val">¥210</div>
+        <div class="stat-label">Fare</div>
+        <div class="stat-sub">≈ $1.40 USD</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-cell">
+        <div class="line-badge">M</div>
+        <div class="line-dir">DIR. OGIKUBO<br>荻窪方面</div>
+      </div>
+    </div>
+
+    <!-- Route Map -->
+    <div class="sec-label">ROUTE MAP · 路線図</div>
+    <div class="metro-scroll">
+      <div class="metro-map">
+        <div class="rail"></div>
+
+        <!-- M-16 Ginza — ORIGIN -->
+        <div class="stop-row">
+          <div class="stop-dot-col"><div class="stop-dot origin-dot"></div></div>
+          <div class="stop-info">
+            <div class="stop-code">M-16 · MARUNOUCHI LINE</div>
+            <div class="stop-en is-origin">Ginza <span class="tag-badge tag-here">YOU ARE HERE</span></div>
+            <div class="stop-jp">銀座</div>
+          </div>
+        </div>
+
+        <!-- M-15 Hibiya -->
+        <div class="stop-row">
+          <div class="stop-dot-col"><div class="stop-dot"></div></div>
+          <div class="stop-info">
+            <div class="stop-code">M-15</div>
+            <div class="stop-en">Hibiya</div>
+            <div class="stop-jp">日比谷</div>
+            <div class="stop-transfer">↔ Hibiya Line H-08 · Chiyoda Line C-09</div>
+          </div>
+        </div>
+
+        <!-- M-14 Kasumigaseki -->
+        <div class="stop-row">
+          <div class="stop-dot-col"><div class="stop-dot"></div></div>
+          <div class="stop-info">
+            <div class="stop-code">M-14</div>
+            <div class="stop-en">Kasumigaseki</div>
+            <div class="stop-jp">霞ケ関</div>
+            <div class="stop-transfer">↔ Hibiya Line H-07 · Chiyoda Line C-08</div>
+          </div>
+        </div>
+
+        <!-- M-13 Kokkai-gijidomae -->
+        <div class="stop-row">
+          <div class="stop-dot-col"><div class="stop-dot"></div></div>
+          <div class="stop-info">
+            <div class="stop-code">M-13</div>
+            <div class="stop-en">Kokkai-gijidomae</div>
+            <div class="stop-jp">国会議事堂前</div>
+            <div class="stop-transfer">↔ Chiyoda Line C-07</div>
+          </div>
+        </div>
+
+        <!-- M-12 Akasaka-mitsuke -->
+        <div class="stop-row">
+          <div class="stop-dot-col"><div class="stop-dot"></div></div>
+          <div class="stop-info">
+            <div class="stop-code">M-12</div>
+            <div class="stop-en">Akasaka-mitsuke</div>
+            <div class="stop-jp">赤坂見附</div>
+            <div class="stop-transfer">↔ Ginza Line G-05 · Hanzomon Line Z-04</div>
+          </div>
+        </div>
+
+        <!-- M-11 Yotsuya -->
+        <div class="stop-row">
+          <div class="stop-dot-col"><div class="stop-dot"></div></div>
+          <div class="stop-info">
+            <div class="stop-code">M-11</div>
+            <div class="stop-en">Yotsuya</div>
+            <div class="stop-jp">四谷</div>
+            <div class="stop-transfer">↔ JR Chuo Line</div>
+          </div>
+        </div>
+
+        <!-- M-10 Yotsuya-sanchome -->
+        <div class="stop-row">
+          <div class="stop-dot-col"><div class="stop-dot"></div></div>
+          <div class="stop-info">
+            <div class="stop-code">M-10</div>
+            <div class="stop-en">Yotsuya-sanchome</div>
+            <div class="stop-jp">四谷三丁目</div>
+          </div>
+        </div>
+
+        <!-- M-09 Shinjuku-sanchome -->
+        <div class="stop-row">
+          <div class="stop-dot-col"><div class="stop-dot"></div></div>
+          <div class="stop-info">
+            <div class="stop-code">M-09</div>
+            <div class="stop-en">Shinjuku-sanchome</div>
+            <div class="stop-jp">新宿三丁目</div>
+            <div class="stop-transfer">↔ Fukutoshin Line F-13 · Toei Shinjuku S-02</div>
+          </div>
+        </div>
+
+        <!-- M-08 Shinjuku — DESTINATION -->
+        <div class="stop-row">
+          <div class="stop-dot-col"><div class="stop-dot dest-dot"></div></div>
+          <div class="stop-info">
+            <div class="stop-code">M-08 · TERMINAL</div>
+            <div class="stop-en is-dest">Shinjuku <span class="tag-badge tag-off">GET OFF HERE</span></div>
+            <div class="stop-jp">新宿</div>
+            <div class="stop-transfer">↔ JR Yamanote · Toei Oedo E-27 · Odakyu · Keio</div>
+          </div>
+        </div>
+
+      </div><!-- end metro-map -->
+    </div><!-- end metro-scroll -->
+
+    <!-- Step-by-step instructions -->
+    <div class="sec-label" style="margin-top:14px;">STEP BY STEP · 乗り方</div>
+    <div class="instructions">
+      <div class="inst-step">
+        <div class="inst-num">1</div>
+        <div class="inst-text">Enter <strong>Ginza Station 銀座</strong> — look for the red <strong>M●</strong> Marunouchi Line entrance</div>
+      </div>
+      <div class="inst-step">
+        <div class="inst-num">2</div>
+        <div class="inst-text">Tap in at the gate with <strong>Suica or PASMO</strong> card — or buy a <strong>¥210 ticket</strong> at the machine</div>
+      </div>
+      <div class="inst-step">
+        <div class="inst-num">3</div>
+        <div class="inst-text">Board platform for <strong>direction Ogikubo 荻窪方面</strong> — red train, every 3–5 min</div>
+      </div>
+      <div class="inst-step">
+        <div class="inst-num">4</div>
+        <div class="inst-text">Ride <strong>8 stops · ~22 minutes</strong> — screens inside show stops in EN + JP</div>
+      </div>
+      <div class="inst-step">
+        <div class="inst-num">5</div>
+        <div class="inst-text">Exit at <strong>Shinjuku 新宿 (M-08)</strong> — tap out at gate. You've arrived.</div>
+      </div>
+    </div>
+
+    <!-- IC card note -->
+    <div class="ic-strip">
+      <div class="ic-icon">💳</div>
+      <div class="ic-text">
+        <strong>Suica · PASMO · IC cards</strong> accepted at all gates.
+        No exact change needed. Buy at any ticket machine — refundable ¥500 deposit.
+      </div>
+    </div>
+
+    <!-- Home indicator -->
+    <div class="safe-area"></div>
+    <div class="home-indicator"></div>
+    <div style="height:8px;"></div>
+
+  </div><!-- end phone -->
+
+  <div class="spec-note">
+    REVERIE · WAYFINDER · D2M Demo Build · Tokyo Marunouchi Line<br>
+    Dreams2Memories Travel, LLC · Commander Authorized 26 MAR 2026
+  </div>
+
+</body>
+</html>

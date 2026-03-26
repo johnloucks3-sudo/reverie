@@ -1,0 +1,21 @@
+# Node
+client/node_modules/
+client/dist/
+client/.env
+client/.env.local
+
+# Python
+api/__pycache__/
+api/**/__pycache__/
+api/.venv/
+api/.env
+api/*.egg-info/
+
+# Build artifacts
+*.pyc
+.DS_Store
+
+# Secrets — never commit
+*.pem
+*.key
+secrets/

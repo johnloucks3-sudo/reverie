@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REVERIE — Phase 0 Design Review</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Outfit:wght@200;300;400&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0C0A0F;
+    color: #EDE8DE;
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 40px 24px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+
+  .header h1 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: 52px;
+    color: #C9A87C;
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+  }
+
+  .header .sub {
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #9E9080;
+    margin-bottom: 24px;
+  }
+
+  .header .instructions {
+    background: #161320;
+    border: 1px solid #2A2438;
+    border-left: 3px solid #C9A87C;
+    padding: 16px 24px;
+    display: inline-block;
+    font-size: 13px;
+    color: #EDE8DE;
+    max-width: 600px;
+    line-height: 1.7;
+  }
+
+  .section {
+    margin-bottom: 72px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #2A2438;
+  }
+
+  .section-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 36px;
+    color: #5A5050;
+  }
+
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: 28px;
+    color: #EDE8DE;
+  }
+
+  .section-desc {
+    font-size: 12px;
+    color: #9E9080;
+    margin-top: 6px;
+    margin-bottom: 28px;
+    letter-spacing: 0.5px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  @media (min-width: 900px) {
+    .grid { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .card {
+    background: #161320;
+    border: 1px solid #2A2438;
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    display: block;
+  }
+
+  .card:hover {
+    border-color: #C9A87C;
+    box-shadow: 0 0 20px rgba(201, 168, 124, 0.12);
+  }
+
+  .card.selected {
+    border-color: #C9A87C;
+    box-shadow: 0 0 24px rgba(201, 168, 124, 0.2);
+  }
+
+  .card-label {
+    padding: 10px 14px;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #C9A87C;
+    border-bottom: 1px solid #2A2438;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-label .option-letter {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    color: #C9A87C;
+  }
+
+  .img-container {
+    width: 100%;
+    aspect-ratio: 1;
+    background: #0C0A0F;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Logo designs are square */
+  .logo-section .img-container { aspect-ratio: 1; }
+  /* Screen designs are portrait */
+  .screen-section .img-container { aspect-ratio: 9/16; }
+
+  .img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .img-fallback {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #5A5050;
+    font-size: 12px;
+    text-align: center;
+    padding: 16px;
+  }
+
+  .img-container img.error ~ .img-fallback { display: flex; }
+
+  .card-actions {
+    padding: 10px 14px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn {
+    font-family: 'Outfit', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border: 1px solid #2A2438;
+    background: transparent;
+    color: #9E9080;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn:hover, .btn-primary:hover {
+    border-color: #C9A87C;
+    color: #C9A87C;
+  }
+
+  .btn-primary {
+    border-color: #C9A87C;
+    color: #C9A87C;
+  }
+
+  .divider {
+    height: 1px;
+    background: #2A2438;
+    margin: 48px 0;
+  }
+
+  /* Brand identity summary */
+  .brand-summary {
+    background: #161320;
+    border: 1px solid #2A2438;
+    padding: 32px;
+    margin-bottom: 48px;
+  }
+
+  .brand-summary h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    color: #C9A87C;
+    font-style: italic;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+  }
+
+  .brand-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px;
+  }
+
+  .brand-item label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #5A5050;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .brand-item p {
+    font-size: 14px;
+    color: #EDE8DE;
+    line-height: 1.6;
+  }
+
+  .swatch-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 2px;
+    border: 1px solid #2A2438;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .swatch:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #221C30;
+    color: #EDE8DE;
+    font-size: 10px;
+    padding: 4px 8px;
+    white-space: nowrap;
+    border: 1px solid #2A2438;
+    z-index: 10;
+  }
+
+  .screen-names {
+    list-style: none;
+    margin-top: 8px;
+  }
+
+  .screen-names li {
+    font-size: 13px;
+    color: #EDE8DE;
+    padding: 4px 0;
+    border-bottom: 1px solid #2A2438;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .screen-names li span:first-child { color: #5A5050; font-size: 11px; }
+  .screen-names li span:last-child { color: #C9A87C; font-style: italic; font-family: 'Cormorant Garamond', serif; font-size: 15px; }
+
+  .footer {
+    text-align: center;
+    padding: 40px 0;
+    border-top: 1px solid #2A2438;
+    margin-top: 60px;
+  }
+
+  .footer p {
+    font-size: 11px;
+    color: #5A5050;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .go-gate {
+    background: #161320;
+    border: 1px solid #C9A87C;
+    padding: 24px 32px;
+    text-align: center;
+    margin: 48px 0;
+  }
+
+  .go-gate h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    color: #C9A87C;
+    font-style: italic;
+    margin-bottom: 12px;
+  }
+
+  .go-gate p {
+    font-size: 13px;
+    color: #9E9080;
+    line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>REVERIE</h1>
+  <p class="sub">Phase 0 Design Review · Dreams2Memories Travel · 26 MAR 2026</p>
+  <div class="instructions">
+    Three decisions needed to open Phase 1.<br>
+    Click any design to open it in Canva for editing.<br>
+    <strong style="color:#C9A87C;">Tell COS: Logo [A/B/C/D] · Home [A/B/C/D] · Oracle [A/B/C/D] · GO</strong>
+  </div>
+</div>
+
+<!-- Brand Identity Summary -->
+<div class="brand-summary">
+  <h3>Brand Identity — Locked by Luna Voss, A6</h3>
+  <div class="brand-grid">
+    <div class="brand-item">
+      <label>One Feeling</label>
+      <p style="font-family:'Cormorant Garamond',serif; font-size:22px; font-style:italic; color:#C9A87C;">RECOGNIZED</p>
+      <p style="font-size:12px; color:#9E9080; margin-top:4px;">"The candle was already lit."</p>
+    </div>
+    <div class="brand-item">
+      <label>Color Palette</label>
+      <div class="swatch-row">
+        <div class="swatch" style="background:#0C0A0F;" title="The Vault #0C0A0F"></div>
+        <div class="swatch" style="background:#161320;" title="The Page #161320"></div>
+        <div class="swatch" style="background:#221C30;" title="The Layer #221C30"></div>
+        <div class="swatch" style="background:#C9A87C;" title="Candlelight #C9A87C"></div>
+        <div class="swatch" style="background:#9B8EC4;" title="Twilight #9B8EC4"></div>
+        <div class="swatch" style="background:#C4847A;" title="The Witness #C4847A"></div>
+        <div class="swatch" style="background:#EDE8DE;" title="Vellum #EDE8DE"></div>
+        <div class="swatch" style="background:#9E9080;" title="Dusk #9E9080"></div>
+      </div>
+    </div>
+    <div class="brand-item">
+      <label>Typography</label>
+      <p style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:18px; color:#EDE8DE;">Cormorant Garamond</p>
+      <p style="font-size:11px; color:#9E9080;">Feel — display, screen names, heroes</p>
+      <p style="margin-top:6px; font-size:14px;">Outfit</p>
+      <p style="font-size:11px; color:#9E9080;">Function — navigation, metadata, forms</p>
+    </div>
+    <div class="brand-item">
+      <label>Screen Names</label>
+      <ul class="screen-names">
+        <li><span>Home</span><span>REVERIE</span></li>
+        <li><span>Chat/Dani</span><span>THE ORACLE</span></li>
+        <li><span>Memories</span><span>AFTERGLOW</span></li>
+        <li><span>Trip</span><span>THE VOYAGE</span></li>
+        <li><span>Settings</span><span>THE CHAMBER</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 1: LOGOS -->
+<div class="section logo-section">
+  <div class="section-header">
+    <span class="section-num">01</span>
+    <span class="section-title">Logo Mark</span>
+  </div>
+  <p class="section-desc">Crescent moon cradling a star · Antique gold on violet-black · Flat vector · Works 16px–200px</p>
+
+  <div class="grid">
+    <!-- Logo A -->
+    <div class="card">
+      <div class="card-label">
+        <span class="option-letter">A</span>
+        <span>Logo</span>
+      </div>
+      <div class="img-container">
+        <img src="review_images/logo_a.png" alt="Logo Option A"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="img-fallback">
+          <div style="font-size:32px;">🌙</div>
+          <div>Image loads in Canva</div>
+          <div style="font-size:10px; color:#5A5050;">Click to view</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <a class="btn btn-primary" href="https://www.canva.com/d/2_0kui89wdC9wsj" target="_blank">Open in Canva</a>
+      </div>
+    </div>
+
+    <!-- Logo B -->
+    <div class="card">
+      <div class="card-label">
+        <span class="option-letter">B</span>
+        <span>Logo</span>
+      </div>
+      <div class="img-container">
+        <img src="review_images/logo_b.png" alt="Logo Option B"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="img-fallback">
+          <div style="font-size:32px;">🌙</div>
+          <div>Image loads in Canva</div>
+          <div style="font-size:10px; color:#5A5050;">Click to view</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <a class="btn btn-primary" href="https://www.canva.com/d/7o0_Ngw9VYtPx7p" target="_blank">Open in Canva</a>
+      </div>
+    </div>
+
+    <!-- Logo C -->
+    <div class="card">
+      <div class="card-label">
+        <span class="option-letter">C</span>
+        <span>Logo</span>
+      </div>
+      <div class="img-container">
+        <img src="review_images/logo_c.png" alt="Logo Option C"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="img-fallback">
+          <div style="font-size:32px;">🌙</div>
+          <div>Image loads in Canva</div>
+          <div style="font-size:10px; color:#5A5050;">Click to view</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <a class="btn btn-primary" href="https://www.canva.com/d/5fJEO-kdwtJ4fAM" target="_blank">Open in Canva</a>
+      </div>
+    </div>
+
+    <!-- Logo D -->
+    <div class="card">
+      <div class="card-label">
+        <span class="option-letter">D</span>
+        <span>Logo</span>
+      </div>
+      <div class="img-container">
+        <img src="review_images/logo_d.png" alt="Logo Option D"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="img-fallback">
+          <div style="font-size:32px;">🌙</div>
+          <div>Image loads in Canva</div>
+          <div style="font-size:10px; color:#5A5050;">Click to view</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <a class="btn btn-primary" href="https://www.canva.com/d/sIptqE8xYEB9Jsw" target="_blank">Open in Canva</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- SECTION 2: HOME SCREEN -->
+<div class="section screen-section">
+  <div class="section-header">
+    <span class="section-num">02</span>
+    <span class="section-title">Home Screen — REVERIE</span>
+  </div>
+  <p class="section-desc">Emotional register: RECOGNIZED · "Welcome back, Erik. Your voyage begins in 3 days."</p>
+
+  <div class="grid">
+    <!-- Home A -->
+    <div class="card">
+      <div class="card-label">
+        <span class="option-letter">A</span>
+        <span>Home</span>
+      </div>
+      <div class="img-container">
+        <img src="review_images/home_a.png" alt="Home Screen A"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="img-fallback">
+          <div style="font-size:32px;">📱</div>
+          <div>Home Screen A</div>
+          <div style="font-size:10px; color:#5A5050;">Click to view</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <a class="btn btn-primary" href="https://www.canva.com/d/nPoLZBAAc8ARBls" target="_blank">Open in Canva</a>
+      </div>
+    </div>
+
+    <!-- Home B -->
+    <div class="card">
+      <div class="card-label">
+        <span class="option-letter">B</span>
+        <span>Home</span>
+      </div>
+      <div class="img-container">
+        <img src="review_images/home_b.png" alt="Home Screen B"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="img-fallback">
+          <div style="font-size:32px;">📱</div>
+          <div>Home Screen B</div>
+          <div style="font-size:10px; color:#5A5050;">Click to view</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <a class="btn btn-primary" href="https://www.canva.com/d/wHOR3YpM8UTr5BX" target="_blank">Open in Canva</a>
+      </div>
+    </div>
+
+    <!-- Home C -->
+    <div class="card">
+      <div class="card-label">
+        <span class="option-letter">C</span>
+        <span>Home</span>
+      </div>
+      <div class="img-container">
+        <img src="review_images/home_c.png" alt="Home Screen C"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="img-fallback">
+          <div style="font-size:32px;">📱</div>
+          <div>Home Screen C</div>
+          <div style="font-size:10px; color:#5A5050;">Click to view</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <a class="btn btn-primary" href="https://www.canva.com/d/j6oiwBiZiFTZV1f" target="_blank">Open in Canva</a>
+      </div>
+    </div>
+
+    <!-- Home D -->
+    <div class="card">
+      <div class="card-label">
+        <span class="option-letter">D</span>
+        <span>Home</span>
+      </div>
+      <div class="img-container">
+        <img src="review_images/home_d.png" alt="Home Screen D"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="img-fallback">
+          <div style="font-size:32px;">📱</div>
+          <div>Home Screen D</div>
+          <div style="font-size:10px; color:#5A5050;">Click to view</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <a class="btn btn-primary" href="https://www.canva.com/d/-rjF_mB5eGmh2GU" target="_blank">Open in Canva</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- SECTION 3: THE ORACLE -->
+<div class="section screen-section">
+  <div class="section-header">
+    <span class="section-num">03</span>
+    <span class="section-title">THE ORACLE — Dani Chat</span>
+  </div>
+  <p class="section-desc">"Good morning, Erik. Transfer confirmed for 9:30 AM." — Not a chatbot. A trusted companion.</p>
+
+  <div class="grid">
+    <!-- Oracle A -->
+    <div class="card">
+      <div class="card-label">
+        <span class="option-letter">A</span>
+        <span>Oracle</span>
+      </div>
+      <div class="img-container">
+        <img src="review_images/oracle_a.png" alt="Oracle Screen A"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="img-fallback">
+          <div style="font-size:32px;">💬</div>
+          <div>Oracle Screen A</div>
+          <div style="font-size:10px; color:#5A5050;">Click to view</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <a class="btn btn-primary" href="https://www.canva.com/d/GWuDuAops2ENfxR" target="_blank">Open in Canva</a>
+      </div>
+    </div>
+
+    <!-- Oracle B -->
+    <div class="card">
+      <div class="card-label">
+        <span class="option-letter">B</span>
+        <span>Oracle</span>
+      </div>
+      <div class="img-container">
+        <img src="review_images/oracle_b.png" alt="Oracle Screen B"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="img-fallback">
+          <div style="font-size:32px;">💬</div>
+          <div>Oracle Screen B</div>
+          <div style="font-size:10px; color:#5A5050;">Click to view</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <a class="btn btn-primary" href="https://www.canva.com/d/SwhvQfMbQDD1AQN" target="_blank">Open in Canva</a>
+      </div>
+    </div>
+
+    <!-- Oracle C -->
+    <div class="card">
+      <div class="card-label">
+        <span class="option-letter">C</span>
+        <span>Oracle</span>
+      </div>
+      <div class="img-container">
+        <img src="review_images/oracle_c.png" alt="Oracle Screen C"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="img-fallback">
+          <div style="font-size:32px;">💬</div>
+          <div>Oracle Screen C</div>
+          <div style="font-size:10px; color:#5A5050;">Click to view</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <a class="btn btn-primary" href="https://www.canva.com/d/wrhMTjcvo7cuXZ5" target="_blank">Open in Canva</a>
+      </div>
+    </div>
+
+    <!-- Oracle D -->
+    <div class="card">
+      <div class="card-label">
+        <span class="option-letter">D</span>
+        <span>Oracle</span>
+      </div>
+      <div class="img-container">
+        <img src="review_images/oracle_d.png" alt="Oracle Screen D"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="img-fallback">
+          <div style="font-size:32px;">💬</div>
+          <div>Oracle Screen D</div>
+          <div style="font-size:10px; color:#5A5050;">Click to view</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <a class="btn btn-primary" href="https://www.canva.com/d/8WpFeZjcrv5Pt47" target="_blank">Open in Canva</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GO GATE -->
+<div class="go-gate">
+  <h3>Phase 0 Gate — Commander Approval Required</h3>
+  <p>
+    Tell COS your selections to open Phase 1 (infrastructure, VPS, domain — Days 3–5).<br><br>
+    <strong style="color:#C9A87C; font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic;">
+      "Logo [A/B/C/D] · Home [A/B/C/D] · Oracle [A/B/C/D] · GO"
+    </strong><br><br>
+    Or: "hold [what to change]"
+  </p>
+</div>
+
+<div class="footer">
+  <p>REVERIE · Dreams2Memories Travel, LLC · Phase 0 · 26 MAR 2026</p>
+  <p style="margin-top:8px;">COS Hale · Luna Voss (A6) · ELON (A12)</p>
+</div>
+
+</body>
+</html>
