@@ -10,15 +10,7 @@ export default function OracleScreen() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'dani',
-      text: "Good morning, Erik. The Silver Muse docks in Civitavecchia at 7:00 AM. Your private transfer to Baglioni Roma is confirmed for the pier exit. Giuseppe will meet you there. Amalfi's clear skies — gentle light breeze from the southwest. You have booked the boat excursion at 10:00 AM.",
-    },
-    {
-      role: 'user',
-      text: "What's the weather in Amalfi on June 25th?",
-    },
-    {
-      role: 'dani',
-      text: "Perfect for the 10:00 boat excursion you've booked.",
+      text: "Good morning, John. Your Silver Nova voyage is shaping up beautifully -- 32 days from Colorado Springs to Tokyo, across the Pacific, through Alaska, and home to Seattle. The JAL Business Class Sky Suite is confirmed, the Kyoto food tour is booked, and your dining reservations aboard are set. What would you like to know?",
     },
   ])
   const [input, setInput] = useState('')
@@ -84,7 +76,7 @@ export default function OracleScreen() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask Dani anything…"
+            placeholder="Ask Dani anything..."
             className="
               flex-1 bg-layer rounded-full px-6 py-3
               text-vellum font-ui font-ui-light text-sm

@@ -8,11 +8,11 @@ export default {
     extend: {
       colors: {
         // Backgrounds — "the dark of a candlelit room, not a server rack"
-        vault:   '#0C0A0F', // Primary BG — near-black with violet undertone
-        page:    '#161320', // Surface 1 — card resting place
-        layer:   '#221C30', // Surface 2 — modals, drawers
-        hover:   '#2C253F', // Surface 3 — touch states, focus rings
-        between: '#2A2438', // Divider — separates without cutting
+        vault:   '#151220', // Primary BG — deep but not pitch black
+        page:    '#1E1A2E', // Surface 1 — card resting place
+        layer:   '#2A243C', // Surface 2 — modals, drawers
+        hover:   '#342D4A', // Surface 3 — touch states, focus rings
+        between: '#322A44', // Divider — separates without cutting
 
         // Accents
         gold:     '#E8C07A', // Candlelight — brightened for legibility on vault
@@ -22,8 +22,8 @@ export default {
 
         // Text
         vellum:   '#EDE8DE', // Primary — aged cream, never clinical white
-        dusk:     '#9E9080', // Secondary — warm taupe
-        ember:    '#5A5050', // Muted — metadata, timestamps
+        dusk:     '#B0A090', // Secondary — warm taupe, lightened for legibility
+        ember:    '#6A6060', // Muted — metadata, timestamps, lightened
       },
       fontFamily: {
         // Cormorant: anything the user *feels*

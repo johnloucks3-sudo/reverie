@@ -1,82 +1,39 @@
-"""Bookings endpoint — GET /api/bookings returns Phase 1 fixture."""
+"""GET /api/bookings — Commander's Silver Nova 32-day journey bookings"""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from jose import jwt, JWTError
-from pydantic import BaseModel
 
 from app.core.config import settings
 
 router = APIRouter()
 
 
-class Booking(BaseModel):
-    type: str
-    description: str
-    confirmation: str
-    status: str
-    amount_usd: float | None = None
-
-
-class BookingsResponse(BaseModel):
-    bookings: list[Booking]
-
-
-@router.get("", response_model=BookingsResponse)
-async def get_bookings(authorization: str | None = None):
-    """
-    Returns Phase 1 hardcoded booking summary.
-    Requires valid JWT in Authorization header (Bearer token).
-    """
-    if not authorization:
+def _get_email(request: Request) -> str:
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing authorization header")
-
-    # Extract Bearer token
-    parts = authorization.split()
-    if len(parts) != 2 or parts[0].lower() != "bearer":
-        raise HTTPException(status_code=401, detail="Invalid authorization header format")
-
-    token = parts[1]
-
-    # Decode JWT
     try:
-        payload = jwt.decode(
-            token,
-            settings.secret_key,
-            algorithms=[settings.jwt_algorithm],
-        )
+        payload = jwt.decode(auth[7:], settings.secret_key, algorithms=[settings.jwt_algorithm])
+        return payload.get("sub", "")
     except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-    # Phase 1 hardcoded fixture
-    return BookingsResponse(
-        bookings=[
-            Booking(
-                type="flight",
-                description="New York (JFK) to Rome (FCO) — United UA 177",
-                confirmation="UA-177-JFK-FCO",
-                status="confirmed",
-                amount_usd=2400.0,
-            ),
-            Booking(
-                type="flight",
-                description="Vancouver (YVR) to Rome (FCO) — Air Canada AC 817",
-                confirmation="AC-817-YVR-FCO",
-                status="confirmed",
-                amount_usd=1800.0,
-            ),
-            Booking(
-                type="flight",
-                description="Rome (FCO) to Vancouver (YVR) — Air Canada AC 1041",
-                confirmation="AC-1041-FCO-YVR",
-                status="confirmed",
-                amount_usd=1800.0,
-            ),
-            Booking(
-                type="cruise",
-                description="Silver Muse Suite 617 — Jun 23–Jul 3 2026 Mediterranean",
-                confirmation="SM260623010",
-                status="confirmed",
-                amount_usd=45000.0,
-            ),
-        ]
-    )
+
+@router.get("")
+async def get_bookings(request: Request):
+    _get_email(request)
+    return {
+        "bookings": [
+            {"type": "flight", "description": "Allegiant G4 3212 · COS → SNA · Apr 10 2:37 PM", "confirmation": "P5F8XF", "status": "confirmed", "amount_usd": 200.0},
+            {"type": "hotel", "description": "Newport Beach Marriott Bayview · 3 nights · Apr 10–13", "confirmation": "79802952", "status": "confirmed", "amount_usd": 1008.35},
+            {"type": "flight", "description": "Delta DL 443 · LAX → HNL · Apr 13 6:55 PM · Seats 2C/3A", "confirmation": "GW4ZHW", "status": "confirmed", "amount_usd": 1395.72},
+            {"type": "hotel", "description": "Hale Koa Hotel · Waikiki Ocean View · 5 nights · Apr 13–18", "confirmation": "10421237", "status": "confirmed", "amount_usd": 1545.0},
+            {"type": "flight", "description": "JAL JL 73 Business · HNL → HND · Apr 18 12:15 PM · Sky Suite III 6G/6D", "confirmation": "FJHPYY", "status": "confirmed", "amount_usd": 4093.60},
+            {"type": "hotel", "description": "Hilton Tokyo Odaiba · Twin Superior Deluxe · 4 nights · Apr 19–23", "confirmation": "3337550400", "status": "confirmed", "amount_usd": 2770.0},
+            {"type": "excursion", "description": "Kyoto Food Tour with Hiro · 3h · Apr 21 10 AM", "confirmation": "PE164717508", "status": "confirmed", "amount_usd": 484.96},
+            {"type": "excursion", "description": "Mt. Fuji & Hakone Bus Tour · Apr 22 7:50 AM", "confirmation": "PE164714008", "status": "confirmed", "amount_usd": 365.62},
+            {"type": "transfer", "description": "Hilton Odaiba → Harumi Port · 4 pax minibus · Apr 23 10:30 AM", "confirmation": "PE151557101", "status": "confirmed", "amount_usd": 0},
+            {"type": "cruise", "description": "Silver Nova · Cabin 8075 Superior Veranda · Tokyo → Seattle · 19 nights", "confirmation": "566910-25", "status": "paid in full", "amount_usd": 10800.0},
+            {"type": "flight", "description": "Southwest WN 4195 · SEA → DEN · May 11 1:55 PM · Seats 06E/06F", "confirmation": "ASC3LX", "status": "confirmed", "amount_usd": 147.80},
+        ],
+    }
