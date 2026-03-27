@@ -27,25 +27,6 @@ SEA_LETTERS: dict[str, dict] = {
             "they'll likely have you confirmed by noon. Go early if they offer a sunset seat."
         ),
     },
-    "2026-04-26": {
-        "date": "2026-04-26",
-        "day_label": "Day 4 — North Pacific",
-        "location": "North Pacific Ocean",
-        "letter": (
-            "John & Susan —\n\n"
-            "You are genuinely in the middle of the Pacific now. No land has been visible for two days, "
-            "and none will appear for several more. The ocean at this latitude in late April runs steel "
-            "blue and wide — the swells long and measured, not violent. Silver Nova handles them "
-            "without drama.\n\n"
-            "This is the kind of day the ship was built for. If yesterday was adjustment, today is "
-            "surrender — to the horizon, the coffee on the veranda, the fact that you have nowhere "
-            "to be and everything already handled. The sea days are the voyage's secret best feature. "
-            "Most people realize that too late.\n\n"
-            "No reservation tonight — enjoy the main dining room at your pace, or revisit the "
-            "Panorama Lounge as the sun sets west. At this longitude the sky does things at dusk "
-            "that deserve a proper seat."
-        ),
-    },
     "2026-04-27": {
         "date": "2026-04-27",
         "day_label": "Day 5 — Mid Pacific",

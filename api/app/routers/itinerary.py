@@ -40,7 +40,7 @@ async def get_itinerary(request: Request):
             {"name": "Tokyo (Harumi)", "date": "2026-04-23", "type": "embark", "notes": "Silver Nova embarkation 2:00–4:00 PM · La Terrazza 18:30"},
             {"name": "Cruising — Pacific", "date": "2026-04-24", "type": "sea", "notes": "The Grill 18:30 (waitlisted)"},
             {"name": "Miyako, Iwate", "date": "2026-04-25", "type": "port", "notes": "Jodogahama & Ryusendo Cave 08:45, 4h"},
-            {"name": "Cruising — Pacific", "date": "2026-04-26", "type": "sea", "notes": ""},
+            {"name": "Aomori, Japan", "date": "2026-04-26", "type": "port", "notes": "Hirosaki Park cherry blossoms · Nebuta Festival Museum"},
             {"name": "Cruising — Pacific", "date": "2026-04-27", "type": "sea", "notes": "Kaiseki 18:30 · $160"},
             {"name": "Cruising — Pacific", "date": "2026-04-28", "type": "sea", "notes": "S.A.L.T. Chef's Table 18:30 · $360"},
             {"name": "Cruising — Pacific", "date": "2026-04-29", "type": "sea", "notes": "La Terrazza 18:30"},

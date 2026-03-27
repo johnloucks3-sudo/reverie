@@ -41,6 +41,7 @@ const PORT_IMAGES: Record<string, string> = {
   'Honolulu': 'https://images.pexels.com/photos/4321914/pexels-photo-4321914.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
   'Newport':  'https://images.pexels.com/photos/26761479/pexels-photo-26761479.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
   'Kyoto':    'https://images.pexels.com/photos/16660223/pexels-photo-16660223.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
+  'Aomori':   'https://images.pexels.com/photos/7350401/pexels-photo-7350401.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
   'Miyako':   'https://images.pexels.com/photos/21704/pexels-photo.jpg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
   'Seattle':  'https://images.pexels.com/photos/5872656/pexels-photo-5872656.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
 }
