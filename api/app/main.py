@@ -7,11 +7,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import auth, itinerary, bookings, contact
+from app.routers import auth, itinerary, bookings, contact, chat, documents, profile
 
 app = FastAPI(
     title="REVERIE API",
-    version="0.1.0",
+    version="0.2.0",
     docs_url="/api/docs" if settings.debug else None,
     redoc_url=None,
 )
@@ -28,6 +28,9 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(itinerary.router, prefix="/api/itinerary", tags=["itinerary"])
 app.include_router(bookings.router, prefix="/api/bookings", tags=["bookings"])
 app.include_router(contact.router, prefix="/api/contact", tags=["contact"])
+app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+app.include_router(profile.router, prefix="/api/profile", tags=["profile"])
 
 
 @app.get("/api/health")

@@ -2,24 +2,19 @@ import { useEffect, useState } from 'react'
 import { api } from '@/shared/lib/api'
 import BottomNav from '@/shared/ui/BottomNav'
 
-interface Port {
-  name: string
-  date: string
-  type: string
-  notes: string
-}
-
+interface Port { name: string; date: string; type: string; notes: string }
 interface Itinerary {
-  voyage_name: string
-  ship: string
-  cabin: string
-  route: string
-  embark_date: string
-  disembark_date: string
-  full_journey_days: number
-  full_journey_start: string
-  ports: Port[]
+  voyage_name: string; ship: string; cabin: string; route: string
+  embark_date: string; disembark_date: string
+  full_journey_days: number; full_journey_start: string; ports: Port[]
 }
+interface Booking {
+  type: string; description: string; confirmation: string
+  status: string; amount_usd: number
+}
+interface BookingsResp { bookings: Booking[] }
+
+type Tab = 'itinerary' | 'bookings'
 
 const TYPE_STYLES: Record<string, { badge: string; border: string }> = {
   'pre-cruise': { badge: 'bg-ether/20 text-ether', border: 'border-ether/30' },
@@ -30,89 +25,120 @@ const TYPE_STYLES: Record<string, { badge: string; border: string }> = {
   excursion:    { badge: 'bg-gold/20 text-gold', border: 'border-gold/30' },
 }
 
-function formatDate(iso: string) {
-  const d = new Date(iso + 'T00:00:00')
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+const BOOKING_COLORS: Record<string, string> = {
+  flight: 'text-ether',
+  hotel: 'text-witness',
+  cruise: 'text-gold',
+  excursion: 'text-gold',
+  transfer: 'text-dusk',
 }
 
+function formatDate(iso: string) {
+  return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+}
 function typeLabel(type: string) {
   if (type === 'pre-cruise') return 'PRE-CRUISE'
   if (type === 'sea') return 'SEA DAY'
   return type.toUpperCase()
 }
+function formatMoney(n: number) {
+  if (n === 0) return 'Included'
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
+}
 
 export default function VoyageScreen() {
-  const [data, setData] = useState<Itinerary | null>(null)
+  const [itin, setItin] = useState<Itinerary | null>(null)
+  const [bookings, setBookings] = useState<Booking[]>([])
   const [error, setError] = useState(false)
+  const [tab, setTab] = useState<Tab>('itinerary')
 
   useEffect(() => {
-    api.get<Itinerary>('/api/itinerary').then(setData).catch(() => setError(true))
+    api.get<Itinerary>('/api/itinerary').then(setItin).catch(() => setError(true))
+    api.get<BookingsResp>('/api/bookings').then(r => setBookings(r.bookings)).catch(() => {})
   }, [])
+
+  const totalSpend = bookings.reduce((s, b) => s + b.amount_usd, 0)
 
   return (
     <div className="min-h-dvh bg-vault pb-24 animate-fade-in">
       {/* Header */}
-      <div className="px-8 pt-8 pb-6 border-b border-between">
-        <div className="flex items-center justify-center mb-4">
+      <div className="px-8 pt-8 pb-4 border-b border-between">
+        <div className="flex items-center justify-center mb-3">
           <svg className="w-6 h-6 text-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <circle cx="12" cy="13" r="8" />
-            <path d="M 12 1 L 12 5 M 12 21 L 12 25 M 1 13 L 5 13 M 23 13 L 27 13" />
+            <path d="M 12 1 L 12 5 M 12 21 L 12 25 M 1 13 L 5 13 M 23 13 L 19 13" />
           </svg>
         </div>
-        <h1 className="font-display-light text-gold text-2xl text-center tracking-widest">
+        <h1 className="font-display text-gold text-2xl text-center tracking-widest font-light">
           THE VOYAGE
         </h1>
       </div>
 
       {/* Voyage Hero */}
-      {data && (
-        <div className="px-8 py-8 border-b border-between">
-          <p className="text-gold font-display-light text-3xl text-center mb-1">
-            {data.ship}
-          </p>
-          <p className="text-gold font-display-light text-lg text-center mb-3">
-            {data.route}
-          </p>
-          <p className="text-dusk font-ui font-ui-light text-sm text-center mb-1">
-            {formatDate(data.full_journey_start)} &ndash; {formatDate(data.disembark_date)}
+      {itin && (
+        <div className="px-8 py-6 border-b border-between">
+          <p className="text-gold font-display text-2xl text-center font-light mb-1">{itin.ship}</p>
+          <p className="text-ether font-display text-base text-center font-light mb-3">{itin.route}</p>
+          <p className="text-dusk font-ui font-ui-xlight text-sm text-center mb-1">
+            {formatDate(itin.full_journey_start)} &ndash; {formatDate(itin.disembark_date)}
           </p>
           <p className="text-ember font-ui font-ui-xlight text-xs text-center">
-            {data.full_journey_days} days &middot; Cabin {data.cabin}
+            {itin.full_journey_days} days &middot; Cabin {itin.cabin}
           </p>
         </div>
       )}
 
+      {/* Tab Bar */}
+      <div className="flex border-b border-between">
+        <button
+          onClick={() => setTab('itinerary')}
+          className={`flex-1 py-3 text-center font-ui font-ui-light text-xs tracking-widest uppercase transition-colors duration-300 ${
+            tab === 'itinerary' ? 'text-gold border-b-2 border-gold' : 'text-ember hover:text-dusk'
+          }`}
+        >
+          Itinerary ({itin?.ports.length ?? 0})
+        </button>
+        <button
+          onClick={() => setTab('bookings')}
+          className={`flex-1 py-3 text-center font-ui font-ui-light text-xs tracking-widest uppercase transition-colors duration-300 ${
+            tab === 'bookings' ? 'text-gold border-b-2 border-gold' : 'text-ember hover:text-dusk'
+          }`}
+        >
+          Bookings ({bookings.length})
+        </button>
+      </div>
+
       {/* Loading / Error */}
-      {!data && !error && (
+      {!itin && !error && (
         <div className="px-8 py-16 text-center">
           <p className="text-dusk font-ui font-ui-light text-sm animate-pulse">Loading your voyage...</p>
         </div>
       )}
       {error && (
         <div className="px-8 py-16 text-center">
-          <p className="text-witness font-ui font-ui-light text-sm">Could not load itinerary. Please try again.</p>
+          <p className="text-witness font-ui font-ui-light text-sm">Could not load itinerary.</p>
         </div>
       )}
 
-      {/* Port List */}
-      {data && (
-        <div className="px-6 py-6 space-y-3">
-          {data.ports.map((port, idx) => {
+      {/* Itinerary Tab */}
+      {tab === 'itinerary' && itin && (
+        <div className="px-5 py-5 space-y-2.5">
+          {itin.ports.map((port, idx) => {
             const style = TYPE_STYLES[port.type] ?? TYPE_STYLES.sea
             return (
               <div
                 key={idx}
-                className={`bg-layer rounded-lg p-5 border ${style.border} hover:bg-hover transition-colors duration-300`}
+                className={`bg-layer rounded-lg p-4 border ${style.border} hover:bg-hover transition-colors duration-300`}
               >
-                <div className="flex justify-between items-start mb-2">
-                  <p className="text-vellum font-display-light text-lg flex-1 mr-3">
+                <div className="flex justify-between items-start mb-1.5">
+                  <p className="text-vellum font-display text-base font-light flex-1 mr-3">
                     {port.name}
                   </p>
-                  <span className={`${style.badge} font-ui font-ui-xlight text-[10px] tracking-wider uppercase px-2 py-1 rounded shrink-0`}>
+                  <span className={`${style.badge} font-ui font-ui-xlight text-[10px] tracking-wider uppercase px-2 py-0.5 rounded shrink-0`}>
                     {typeLabel(port.type)}
                   </span>
                 </div>
-                <p className="text-dusk font-ui font-ui-light text-sm mb-1">
+                <p className="text-dusk font-ui font-ui-xlight text-xs mb-1">
                   {formatDate(port.date)}
                 </p>
                 {port.notes && (
@@ -123,6 +149,56 @@ export default function VoyageScreen() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Bookings Tab */}
+      {tab === 'bookings' && (
+        <div className="px-5 py-5">
+          {/* Total */}
+          <div className="bg-layer rounded-xl p-5 border border-gold/30 mb-4 text-center"
+            style={{ boxShadow: '0 0 20px rgba(232, 192, 122, 0.06)' }}>
+            <p className="text-dusk font-ui font-ui-xlight text-xs tracking-widest uppercase mb-1">Total Investment</p>
+            <p className="text-gold font-display text-3xl font-light">{formatMoney(totalSpend)}</p>
+            <p className="text-ember font-ui font-ui-xlight text-xs mt-1">
+              {bookings.filter(b => b.status === 'paid in full').length > 0
+                ? `${bookings.filter(b => b.status === 'paid in full').length} paid in full · ${bookings.filter(b => b.status === 'confirmed').length} confirmed`
+                : `All ${bookings.length} confirmed`
+              }
+            </p>
+          </div>
+
+          {/* Booking Cards */}
+          <div className="space-y-2.5">
+            {bookings.map((b, idx) => (
+              <div
+                key={idx}
+                className="bg-layer rounded-lg p-4 border border-between hover:bg-hover transition-colors duration-300"
+              >
+                <div className="flex items-start gap-3">
+                  <span className={`${BOOKING_COLORS[b.type] ?? 'text-dusk'} font-ui font-ui-xlight text-[10px] tracking-wider uppercase bg-hover px-2 py-0.5 rounded shrink-0 mt-0.5`}>
+                    {b.type}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-vellum font-ui font-ui-light text-sm leading-snug">{b.description}</p>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-dusk font-ui font-ui-xlight text-xs">
+                        {b.confirmation}
+                      </span>
+                      <span className={`font-ui font-ui-xlight text-xs ${b.status === 'paid in full' ? 'text-gold' : 'text-dusk'}`}>
+                        {b.amount_usd > 0 ? formatMoney(b.amount_usd) : 'Included'}
+                      </span>
+                    </div>
+                    <span className={`inline-block mt-1 font-ui font-ui-xlight text-[10px] tracking-wider uppercase px-2 py-0.5 rounded ${
+                      b.status === 'paid in full' ? 'bg-gold/15 text-gold' : 'bg-ether/15 text-ether'
+                    }`}>
+                      {b.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
