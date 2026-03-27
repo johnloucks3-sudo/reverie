@@ -1,10 +1,15 @@
 """Magic link auth — POST /api/auth/magic → email link → GET /api/auth/verify/{token}"""
 
 import base64
+import fcntl
+import json
+import logging
+import os
 import secrets
 from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from google.auth.transport.requests import Request
@@ -16,9 +21,41 @@ from pydantic import BaseModel, EmailStr
 from app.core.config import settings
 
 router = APIRouter()
+logger = logging.getLogger("reverie.auth")
 
-# In-memory token store — replace with Redis/DB in Phase 2
-_pending_tokens: dict[str, dict] = {}
+# ── Persistent file-based token store ───────────────────────────────
+# Survives API restarts. File-locked for concurrent safety.
+_TOKEN_STORE_PATH = Path("/home/john/Thunderbird/reverie/api/.reverie_tokens.json")
+
+
+def _load_tokens() -> dict[str, dict]:
+    """Load pending tokens from disk. Returns {} if file missing or corrupt."""
+    if not _TOKEN_STORE_PATH.exists():
+        return {}
+    try:
+        with open(_TOKEN_STORE_PATH, "r") as f:
+            raw: dict[str, dict] = json.load(f)
+        # Purge expired tokens on load
+        now = datetime.utcnow().isoformat()
+        return {k: v for k, v in raw.items() if v.get("expires", "") > now}
+    except Exception as e:
+        logger.warning("Token store read failed, starting fresh: %s", e)
+        return {}
+
+
+def _save_tokens(tokens: dict[str, dict]) -> None:
+    """Persist tokens to disk with exclusive lock."""
+    try:
+        _TOKEN_STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        tmp = str(_TOKEN_STORE_PATH) + ".tmp"
+        with open(tmp, "w") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            json.dump(tokens, f, default=str)
+            fcntl.flock(f, fcntl.LOCK_UN)
+        os.replace(tmp, _TOKEN_STORE_PATH)
+    except Exception as e:
+        logger.error("Token store write failed: %s", e)
+
 
 # Email whitelist — only these addresses can request magic links
 ALLOWED_EMAILS = {
@@ -39,21 +76,37 @@ async def request_magic_link(req: MagicRequest):
     if req.email.lower() not in ALLOWED_EMAILS:
         # Return same response to prevent email enumeration
         return {"detail": "Magic link sent"}
+
     token = secrets.token_urlsafe(32)
-    _pending_tokens[token] = {
+    tokens = _load_tokens()
+    tokens[token] = {
         "email": req.email,
-        "expires": datetime.utcnow() + timedelta(hours=24),
+        "expires": (datetime.utcnow() + timedelta(hours=24)).isoformat(),
     }
+    _save_tokens(tokens)
+
     link = f"{settings.magic_link_base_url}/login?token={token}"
     _send_magic_email(req.email, link)
+    logger.info("Magic link issued for %s", req.email)
     return {"detail": "Magic link sent"}
 
 
 @router.get("/verify/{token}")
 async def verify_magic_link(token: str):
-    record = _pending_tokens.pop(token, None)
-    if not record or datetime.utcnow() > record["expires"]:
+    tokens = _load_tokens()
+    record = tokens.pop(token, None)
+
+    if not record:
         raise HTTPException(status_code=401, detail="Link expired or invalid")
+
+    expires_str = record.get("expires", "")
+    if datetime.utcnow().isoformat() > expires_str:
+        # Already expired — save without the token and reject
+        _save_tokens(tokens)
+        raise HTTPException(status_code=401, detail="Link expired or invalid")
+
+    # Valid — remove from store (single-use) and issue JWT
+    _save_tokens(tokens)
 
     jwt_token = jwt.encode(
         {
@@ -63,6 +116,7 @@ async def verify_magic_link(token: str):
         settings.secret_key,
         algorithm=settings.jwt_algorithm,
     )
+    logger.info("Magic link verified for %s — JWT issued", record["email"])
     return {"access_token": jwt_token, "token_type": "bearer"}
 
 

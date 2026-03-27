@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '@/shared/lib/api'
 import BottomNav from '@/shared/ui/BottomNav'
 
+const API_BASE = import.meta.env.VITE_API_URL ?? ''
+
 interface JournalEntry {
   id: number
   timestamp: string
@@ -54,6 +56,7 @@ function formatDateTime(iso: string) {
 export default function JournalScreen() {
   const navigate = useNavigate()
   const noteRef = useRef<HTMLTextAreaElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
 
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,6 +73,11 @@ export default function JournalScreen() {
   const [tags, setTags] = useState<string[]>([])
   const [entryType, setEntryType] = useState('ad_hoc')
   const [showComposer, setShowComposer] = useState(false)
+
+  // Photo state
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
 
   const fetchEntries = () => {
     api.get<JournalResp>('/api/journal')
@@ -101,9 +109,48 @@ export default function JournalScreen() {
     setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
   }
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    setSelectedFiles(prev => [...prev, ...files])
+    files.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = ev => setPhotoPreviews(prev => [...prev, ev.target?.result as string])
+      reader.readAsDataURL(file)
+    })
+    // Reset input so same file can be selected again
+    e.target.value = ''
+  }
+
+  const removePhoto = (idx: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== idx))
+    setPhotoPreviews(prev => prev.filter((_, i) => i !== idx))
+  }
+
   const handleSubmit = async () => {
     if (!note.trim()) return
     setSubmitting(true)
+    let photoUrls: string[] = []
+
+    // Upload photos first
+    if (selectedFiles.length > 0) {
+      setUploadingPhotos(true)
+      try {
+        const uploads = await Promise.all(
+          selectedFiles.map(file => {
+            const fd = new FormData()
+            fd.append('file', file)
+            return api.upload<{ url: string }>('/api/journal/photo', fd)
+          })
+        )
+        photoUrls = uploads.map(r => r.url)
+      } catch {
+        // Photos failed — submit without them
+      } finally {
+        setUploadingPhotos(false)
+      }
+    }
+
     try {
       await api.post('/api/journal', {
         note: note.trim(),
@@ -113,7 +160,7 @@ export default function JournalScreen() {
         tags,
         mood,
         entry_type: entryType,
-        photo_links: [],
+        photo_links: photoUrls,
       })
       // Reset form
       setNote('')
@@ -124,6 +171,8 @@ export default function JournalScreen() {
       setMood(null)
       setTags([])
       setEntryType('ad_hoc')
+      setSelectedFiles([])
+      setPhotoPreviews([])
       setShowComposer(false)
       fetchEntries()
     } catch {
@@ -248,6 +297,52 @@ export default function JournalScreen() {
               </p>
             )}
 
+            {/* Camera / Photos */}
+            <div>
+              <input
+                ref={cameraRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                multiple
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              <button
+                type="button"
+                onClick={() => cameraRef.current?.click()}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-between text-ember hover:text-dusk hover:border-dusk/30 transition-colors duration-200 font-ui font-ui-xlight text-[10px] tracking-wider uppercase"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+                {selectedFiles.length > 0 ? `${selectedFiles.length} photo${selectedFiles.length > 1 ? 's' : ''}` : 'Add Photo'}
+              </button>
+              {photoPreviews.length > 0 && (
+                <div className="flex gap-2 mt-2 overflow-x-auto pb-1">
+                  {photoPreviews.map((src, i) => (
+                    <div key={i} className="relative shrink-0">
+                      <img
+                        src={src}
+                        alt=""
+                        className="w-16 h-16 rounded-lg object-cover border border-between"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(i)}
+                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-witness text-white flex items-center justify-center"
+                      >
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Mood */}
             <div>
               <p className="text-ember font-ui font-ui-xlight text-[10px] tracking-wider uppercase mb-2">Mood</p>
@@ -301,7 +396,7 @@ export default function JournalScreen() {
                 disabled={!note.trim() || submitting}
                 className="flex-1 py-2.5 rounded-lg border border-gold/50 bg-gold/15 text-gold font-ui font-ui-xlight text-xs tracking-wider uppercase hover:bg-gold/25 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Saving...' : 'Save Entry'}
+                {uploadingPhotos ? 'Uploading...' : submitting ? 'Saving...' : 'Save Entry'}
               </button>
             </div>
           </div>
@@ -380,6 +475,21 @@ export default function JournalScreen() {
                   <span className="text-ember ml-1">({entry.lat.toFixed(2)}, {entry.lon.toFixed(2)})</span>
                 )}
               </p>
+            )}
+
+            {/* Photos */}
+            {entry.photo_links.length > 0 && (
+              <div className="flex gap-2 mb-2 overflow-x-auto pb-1">
+                {entry.photo_links.map((url, i) => (
+                  <img
+                    key={i}
+                    src={url.startsWith('/') ? `${API_BASE}${url}` : url}
+                    alt=""
+                    className="w-20 h-20 rounded-lg object-cover shrink-0 border border-between"
+                    onError={e => { e.currentTarget.style.display = 'none' }}
+                  />
+                ))}
+              </div>
             )}
 
             {/* Tags */}

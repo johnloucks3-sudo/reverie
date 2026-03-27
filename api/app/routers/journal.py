@@ -3,12 +3,14 @@ GPS-linked notes, photos, end-of-day debriefs.
 SQLite-backed for persistence across restarts.
 """
 
+import hashlib
+import shutil
 import sqlite3
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
 from app.core.auth import get_email
@@ -16,6 +18,11 @@ from app.core.auth import get_email
 router = APIRouter()
 
 DB_PATH = Path(__file__).parent.parent.parent / "data" / "journal.db"
+PHOTOS_DIR = Path(__file__).parent.parent.parent / "photos"
+PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
+
+ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
+MAX_PHOTO_BYTES = 20 * 1024 * 1024  # 20 MB
 
 
 def _init_db():
@@ -111,6 +118,35 @@ async def create_entry(entry: JournalEntry, request: Request):
     conn.commit()
     conn.close()
     return {"id": entry_id, "timestamp": now, "detail": "Entry saved"}
+
+
+@router.post("/photo")
+async def upload_photo(request: Request, file: UploadFile = File(...)):
+    """Upload a photo for a journal entry. Returns the URL to embed in photo_links."""
+    email = get_email(request)
+
+    content_type = file.content_type or ""
+    if content_type not in ALLOWED_MIME and not content_type.startswith("image/"):
+        raise HTTPException(status_code=415, detail="Image files only")
+
+    data = await file.read()
+    if len(data) > MAX_PHOTO_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 20 MB)")
+
+    email_slug = hashlib.md5(email.encode()).hexdigest()[:8]
+    photo_dir = PHOTOS_DIR / email_slug
+    photo_dir.mkdir(parents=True, exist_ok=True)
+
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")[:20]
+    orig_suffix = Path(file.filename or "photo.jpg").suffix.lower() or ".jpg"
+    # Normalize HEIC → .heic so iOS photos store correctly
+    filename = f"{ts}{orig_suffix}"
+    dest = photo_dir / filename
+
+    dest.write_bytes(data)
+
+    url = f"/api/photos/{email_slug}/{filename}"
+    return {"url": url}
 
 
 @router.delete("/{entry_id}")

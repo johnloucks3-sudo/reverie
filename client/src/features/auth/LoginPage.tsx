@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [verifying, setVerifying] = useState(false)
+  const [linkError, setLinkError] = useState(false)
   const navigate = useNavigate()
 
   // Handle magic link click — /login?token=xxx
@@ -25,7 +26,12 @@ export default function LoginPage() {
         localStorage.setItem('reverie_token', access_token)
         navigate('/', { replace: true })
       })
-      .catch(() => setVerifying(false))
+      .catch(() => {
+        setVerifying(false)
+        setLinkError(true)
+        // Clear the bad token from URL so form shows clean
+        window.history.replaceState({}, '', '/login')
+      })
   }, [navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,6 +116,15 @@ export default function LoginPage() {
             {loading ? 'Sending…' : 'Open my voyage'}
           </button>
         </form>
+
+        {linkError && (
+          <div className="mt-6 p-4 border border-red-900/50 rounded-lg bg-red-950/20 text-center">
+            <p className="text-red-400 font-ui text-xs leading-relaxed">
+              That link has expired or was already used.
+              <br />Enter your email to receive a fresh one.
+            </p>
+          </div>
+        )}
 
         <p className="text-ember font-ui text-xs text-center mt-12 leading-relaxed">
           Your link is private and expires in 24 hours.

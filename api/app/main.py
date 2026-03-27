@@ -3,8 +3,11 @@ Phase 1: auth shell + Thunderbird MCP proxy.
 Read-only. No database. Magic link + JWT only.
 """
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.routers import auth, itinerary, bookings, contact, chat, documents, profile, weather, bridge, journal, sea_letters
@@ -40,3 +43,9 @@ app.include_router(sea_letters.router, prefix="/api/sea-letters", tags=["sea-let
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "service": "reverie-api"}
+
+
+# Serve uploaded journal photos as static files
+_photos_dir = Path("/home/john/Thunderbird/reverie/api/photos")
+_photos_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/api/photos", StaticFiles(directory=str(_photos_dir)), name="photos")

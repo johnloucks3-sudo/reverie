@@ -16,7 +16,15 @@ export default function OracleScreen() {
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingDots, setLoadingDots] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Cycling dots for loading indicator: . .. ...
+  useEffect(() => {
+    if (!loading) return
+    const id = setInterval(() => setLoadingDots(d => (d + 1) % 3), 500)
+    return () => clearInterval(id)
+  }, [loading])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -103,7 +111,9 @@ export default function OracleScreen() {
           <div className="flex justify-start">
             <div className="bg-layer border border-between rounded-xl p-4">
               <p className="text-gold font-ui font-ui-xlight text-[10px] tracking-wider uppercase mb-2">Dani</p>
-              <p className="text-dusk font-ui font-ui-light text-sm animate-pulse">Checking your voyage details...</p>
+              <p className="text-dusk font-ui font-ui-light text-sm">
+                {'Checking your voyage' + '.'.repeat(loadingDots + 1)}
+              </p>
             </div>
           </div>
         )}
