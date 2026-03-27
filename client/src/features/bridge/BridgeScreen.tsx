@@ -315,6 +315,66 @@ export default function BridgeScreen() {
         </div>
       )}
 
+      {/* Quick Links */}
+      <div className="px-6 py-4">
+        <p className="text-dusk font-ui font-ui-xlight text-xs tracking-widest uppercase mb-3">Quick Links</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          <a
+            href="https://translate.google.com/?sl=auto&tl=en"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-layer rounded-lg p-4 border border-between hover:border-ether/30 hover:bg-hover transition-colors duration-300 text-center"
+          >
+            <svg className="w-6 h-6 text-ether mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M3 5h12M9 3v2M5 5c0 4.5 3.5 8 8 8" />
+              <path d="M13 15l3 6 3-6M14 19h4" />
+            </svg>
+            <p className="text-vellum font-ui font-ui-light text-xs">Translator</p>
+            <p className="text-ember font-ui font-ui-xlight text-[9px] mt-0.5">Google Translate</p>
+          </a>
+
+          <a
+            href="https://wa.me/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-layer rounded-lg p-4 border border-between hover:border-ether/30 hover:bg-hover transition-colors duration-300 text-center"
+          >
+            <svg className="w-6 h-6 text-ether mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M12 2a10 10 0 00-8.66 15l-1.28 4.68 4.68-1.28A10 10 0 1012 2z" />
+              <path d="M8 10c0-.55.45-1 1-1s1 .45 1 1-.45 2-1 2m6-2c0-.55-.45-1-1-1s-1 .45-1 1 .45 2 1 2" />
+            </svg>
+            <p className="text-vellum font-ui font-ui-light text-xs">WhatsApp</p>
+            <p className="text-ember font-ui font-ui-xlight text-[9px] mt-0.5">Send message</p>
+          </a>
+
+          <a
+            href="https://www.cruisemapper.com/ships/Silver-Nova-2045"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-layer rounded-lg p-4 border border-between hover:border-gold/30 hover:bg-hover transition-colors duration-300 text-center"
+          >
+            <svg className="w-6 h-6 text-gold mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M3 17l2-4h14l2 4" />
+              <path d="M5 13l1-6h12l1 6" />
+              <path d="M12 7V3" />
+            </svg>
+            <p className="text-vellum font-ui font-ui-light text-xs">CruiseMapper</p>
+            <p className="text-ember font-ui font-ui-xlight text-[9px] mt-0.5">Live ship tracker</p>
+          </a>
+
+          <div className="bg-layer rounded-lg p-4 border border-witness/20 text-center">
+            <svg className="w-6 h-6 text-witness mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M12 9v4M12 17h.01" />
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+            <p className="text-vellum font-ui font-ui-light text-xs">Medical</p>
+            <p className="text-ember font-ui font-ui-xlight text-[9px] mt-0.5 leading-relaxed">
+              Ship: Deck 4 Med Center<br />Emergency: 911 / 112
+            </p>
+          </div>
+        </div>
+      </div>
+
       {error && (
         <div className="px-8 py-16 text-center">
           <p className="text-witness font-ui font-ui-light text-sm">Could not load bridge data.</p>
