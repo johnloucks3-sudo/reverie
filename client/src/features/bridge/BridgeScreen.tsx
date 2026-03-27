@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup } from 'react-leaflet'
 import { api } from '@/shared/lib/api'
 import BottomNav from '@/shared/ui/BottomNav'
@@ -57,6 +58,7 @@ const WP_COLORS: Record<string, string> = {
 }
 
 export default function BridgeScreen() {
+  const navigate = useNavigate()
   const [data, setData] = useState<BridgeData | null>(null)
   const [weather, setWeather] = useState<WeatherForecast[]>([])
   const [error, setError] = useState(false)
@@ -318,6 +320,27 @@ export default function BridgeScreen() {
       {/* Quick Links */}
       <div className="px-6 py-4">
         <p className="text-dusk font-ui font-ui-xlight text-xs tracking-widest uppercase mb-3">Quick Links</p>
+
+        {/* Wayfinder Featured Link */}
+        <button
+          onClick={() => navigate('/wayfinder')}
+          className="w-full bg-layer rounded-xl p-4 border border-[#e60012]/20 hover:border-[#e60012]/40 hover:bg-hover transition-colors duration-300 mb-2.5 text-left"
+          style={{ background: 'linear-gradient(135deg, rgba(230,0,18,0.04) 0%, rgba(107,91,149,0.04) 100%)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#e60012]/15 border border-[#e60012]/30 flex items-center justify-center shrink-0">
+              <span className="text-white text-sm font-bold bg-[#e60012] rounded-full w-6 h-6 flex items-center justify-center">M</span>
+            </div>
+            <div className="flex-1">
+              <p className="text-vellum font-ui font-ui-light text-sm">Tokyo Wayfinder</p>
+              <p className="text-ember font-ui font-ui-xlight text-[10px]">東京メトロ · Ginza → Shinjuku · 22 min</p>
+            </div>
+            <svg className="w-4 h-4 text-ember shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </button>
+
         <div className="grid grid-cols-2 gap-2.5">
           <a
             href="https://translate.google.com/?sl=auto&tl=en"
