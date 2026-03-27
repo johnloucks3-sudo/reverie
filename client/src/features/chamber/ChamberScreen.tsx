@@ -199,6 +199,21 @@ export default function ChamberScreen() {
         </button>
 
         <button
+          onClick={() => navigate('/journal')}
+          className="w-full bg-layer rounded-lg p-4 border border-between hover:border-gold/40 hover:bg-hover transition-colors duration-300 text-left"
+        >
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 text-gold shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M4 4h16v16H4zM8 8h8M8 12h6M8 16h4" />
+            </svg>
+            <div>
+              <p className="text-vellum font-ui font-ui-light text-sm">Afterglow Journal</p>
+              <p className="text-ember font-ui font-ui-xlight text-xs mt-0.5">Capture moments, notes & memories</p>
+            </div>
+          </div>
+        </button>
+
+        <button
           onClick={handleSignOut}
           className="w-full bg-layer rounded-lg p-4 border border-between hover:border-witness/50 hover:bg-hover transition-colors duration-300 text-left"
         >
