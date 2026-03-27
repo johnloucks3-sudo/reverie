@@ -5,6 +5,7 @@ const navItems = [
   { label: 'VOYAGE', path: '/voyage', icon: 'M12 1L12 5M12 21L12 25M1 13L5 13M19 13L23 13 M12 5a8 8 0 100 16 8 8 0 000-16z' },
   { label: 'BRIDGE', path: '/bridge', icon: 'M3 17l2-4h14l2 4M5 13l1-6h12l1 6M12 7V3' },
   { label: 'ORACLE', path: '/oracle', icon: 'M 12 2 Q 6 8 6 14 Q 6 20 12 22 Q 18 20 18 14 Q 18 8 12 2 Z' },
+  { label: 'JOURNAL', path: '/journal', icon: 'M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z' },
   { label: 'CHAMBER', path: '/chamber', icon: 'M 7 10 V 7 C 7 5 8 3 10 3 H 14 C 16 3 17 5 17 7 V 10 M 6 10 H 18 C 19 10 20 11 20 12 V 20 C 20 21 19 22 18 22 H 6 C 5 22 4 21 4 20 V 12 C 4 11 5 10 6 10 Z' },
 ]
 

@@ -21,6 +21,12 @@ interface JournalEntry {
 
 interface JournalResp { entries: JournalEntry[] }
 
+const TRAVEL_EMOJIS = [
+  '🌊','🚢','✈️','🌅','🏔️','🐋','🦅','🍣','🌸','🗾','🗺️','📸',
+  '⚓','🌙','⭐','🍶','🏯','🎌','🌋','🦞','🐟','🌺','🏖️','⛵',
+  '🌤️','🍜','🥢','🐬','🦀','🎋','💙','🍱','🌿','🎏','🏝️','😊',
+]
+
 const MOOD_LABELS = ['', 'Rough', 'Low', 'Neutral', 'Good', 'Incredible']
 const MOOD_COLORS = ['', 'text-witness', 'text-ember', 'text-dusk', 'text-ether', 'text-gold']
 
@@ -79,6 +85,11 @@ export default function JournalScreen() {
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
 
+  // Voice + emoji
+  const [isListening, setIsListening] = useState(false)
+  const recognitionRef = useRef<any>(null)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+
   const fetchEntries = () => {
     api.get<JournalResp>('/api/journal')
       .then(r => setEntries(r.entries))
@@ -125,6 +136,36 @@ export default function JournalScreen() {
   const removePhoto = (idx: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== idx))
     setPhotoPreviews(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const insertEmoji = (emoji: string) => {
+    const el = noteRef.current
+    if (!el) { setNote(prev => prev + emoji); setShowEmojiPicker(false); return }
+    const start = el.selectionStart ?? note.length
+    const end = el.selectionEnd ?? note.length
+    const next = note.slice(0, start) + emoji + note.slice(end)
+    setNote(next)
+    setTimeout(() => { el.selectionStart = el.selectionEnd = start + emoji.length; el.focus() }, 0)
+    setShowEmojiPicker(false)
+  }
+
+  const toggleVoice = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) return
+    if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return }
+    const r = new SR()
+    r.continuous = false
+    r.interimResults = false
+    r.lang = 'en-US'
+    r.onresult = (e: any) => {
+      const t = e.results[0][0].transcript
+      setNote(prev => prev + (prev && !prev.endsWith(' ') ? ' ' : '') + t)
+    }
+    r.onend = () => setIsListening(false)
+    r.onerror = () => setIsListening(false)
+    recognitionRef.current = r
+    r.start()
+    setIsListening(true)
   }
 
   const handleSubmit = async () => {
@@ -270,6 +311,47 @@ export default function JournalScreen() {
               rows={4}
               className="w-full bg-vault/50 rounded-lg px-4 py-3 text-vellum font-ui font-ui-light text-sm placeholder-ember/40 border border-between focus:border-gold/40 focus:outline-none resize-none transition-colors"
             />
+
+            {/* Voice + emoji toolbar */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={toggleVoice}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-colors duration-200 font-ui font-ui-xlight text-[10px] tracking-wider uppercase ${
+                  isListening
+                    ? 'border-witness/50 bg-witness/15 text-witness animate-pulse'
+                    : 'border-between text-ember hover:text-dusk hover:border-dusk/30'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                  <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" />
+                </svg>
+                {isListening ? 'Listening...' : 'Dictate'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-colors duration-200 font-ui font-ui-xlight text-[10px] tracking-wider uppercase ${
+                  showEmojiPicker
+                    ? 'border-gold/50 bg-gold/15 text-gold'
+                    : 'border-between text-ember hover:text-dusk hover:border-dusk/30'
+                }`}
+              >
+                <span className="text-sm leading-none">😊</span>
+                Emoji
+              </button>
+            </div>
+            {showEmojiPicker && (
+              <div className="grid grid-cols-9 gap-1 bg-vault/80 rounded-xl p-3 border border-between">
+                {TRAVEL_EMOJIS.map(e => (
+                  <button key={e} type="button" onClick={() => insertEmoji(e)}
+                    className="text-xl text-center py-1 hover:bg-hover rounded transition-colors">
+                    {e}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Location */}
             <div className="flex gap-2">
