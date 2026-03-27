@@ -1,27 +1,15 @@
 """GET /api/documents — Document vault with real booking confirmations"""
 
-from fastapi import APIRouter, HTTPException, Request
-from jose import jwt, JWTError
+from fastapi import APIRouter, Request
 
-from app.core.config import settings
+from app.core.auth import get_email
 
 router = APIRouter()
 
 
-def _get_email(request: Request) -> str:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing authorization header")
-    try:
-        payload = jwt.decode(auth[7:], settings.secret_key, algorithms=[settings.jwt_algorithm])
-        return payload.get("sub", "")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-
 @router.get("")
 async def get_documents(request: Request):
-    _get_email(request)
+    get_email(request)
     return {
         "documents": [
             {

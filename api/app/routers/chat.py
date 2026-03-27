@@ -5,11 +5,10 @@ Falls back to keyword responder if SDK unavailable.
 import asyncio
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
-from jose import jwt, JWTError
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
-from app.core.config import settings
+from app.core.auth import get_email
 
 router = APIRouter()
 logger = logging.getLogger("reverie.chat")
@@ -30,17 +29,6 @@ try:
     logger.info("Claude Code SDK loaded — Dani AI chat enabled ($0 via Max plan)")
 except ImportError:
     logger.warning("Claude Code SDK not available — using keyword fallback")
-
-
-def _get_email(request: Request) -> str:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing authorization header")
-    try:
-        payload = jwt.decode(auth[7:], settings.secret_key, algorithms=[settings.jwt_algorithm])
-        return payload.get("sub", "")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 class ChatRequest(BaseModel):
@@ -203,7 +191,7 @@ def _keyword_response(msg: str) -> str:
 
 @router.post("")
 async def chat(req: ChatRequest, request: Request):
-    _get_email(request)
+    get_email(request)
 
     # Try SDK first (free via Max plan)
     if _SDK_AVAILABLE:

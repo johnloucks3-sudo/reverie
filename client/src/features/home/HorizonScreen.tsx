@@ -40,10 +40,12 @@ const TYPE_ICON: Record<string, string> = {
 export default function HorizonScreen() {
   const [itin, setItin] = useState<Itinerary | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [countries, setCountries] = useState<string[]>([])
 
   useEffect(() => {
     api.get<Itinerary>('/api/itinerary').then(setItin).catch(() => {})
     api.get<BookingsResp>('/api/bookings').then(r => setBookings(r.bookings)).catch(() => {})
+    api.get<{ stats: { countries: string[] } }>('/api/profile').then(r => setCountries(r.stats.countries)).catch(() => {})
   }, [])
 
   const firstName = itin?.client_name?.split(' ')[0] ?? 'Traveler'
@@ -121,7 +123,7 @@ export default function HorizonScreen() {
               <p className="text-ember font-ui font-ui-xlight text-[10px] tracking-wider uppercase">bookings</p>
             </div>
             <div className="bg-layer rounded-lg p-4 border border-between text-center">
-              <p className="text-gold font-display text-2xl font-light">3</p>
+              <p className="text-gold font-display text-2xl font-light">{countries.length}</p>
               <p className="text-ember font-ui font-ui-xlight text-[10px] tracking-wider uppercase">countries</p>
             </div>
             <div className="bg-layer rounded-lg p-4 border border-between text-center">

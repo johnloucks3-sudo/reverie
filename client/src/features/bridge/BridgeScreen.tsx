@@ -109,9 +109,9 @@ export default function BridgeScreen() {
           </svg>
         </div>
         <h1 className="font-display text-gold text-2xl text-center tracking-widest font-light">
-          MINI-BRIDGE
+          THE BRIDGE
         </h1>
-        <p className="text-ember font-ui font-ui-xlight text-xs text-center mt-1">Ship awareness panel</p>
+        <p className="text-ember font-ui font-ui-xlight text-xs text-center mt-1">Your position in the world</p>
       </div>
 
       {/* Progress Bar */}
@@ -333,7 +333,7 @@ export default function BridgeScreen() {
             </div>
             <div className="flex-1">
               <p className="text-vellum font-ui font-ui-light text-sm">Tokyo Wayfinder</p>
-              <p className="text-ember font-ui font-ui-xlight text-[10px]">東京メトロ · Ginza → Shinjuku · 22 min</p>
+              <p className="text-ember font-ui font-ui-xlight text-[10px]">Hilton Odaiba → Shinjuku · 25 min</p>
             </div>
             <svg className="w-4 h-4 text-ember shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M9 5l7 7-7 7" />

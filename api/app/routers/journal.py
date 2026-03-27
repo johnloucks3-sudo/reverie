@@ -8,26 +8,14 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
-from jose import jwt, JWTError
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
-from app.core.config import settings
+from app.core.auth import get_email
 
 router = APIRouter()
 
 DB_PATH = Path(__file__).parent.parent.parent / "data" / "journal.db"
-
-
-def _get_email(request: Request) -> str:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing authorization header")
-    try:
-        payload = jwt.decode(auth[7:], settings.secret_key, algorithms=[settings.jwt_algorithm])
-        return payload.get("sub", "")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 def _init_db():
@@ -69,7 +57,7 @@ class JournalEntry(BaseModel):
 
 @router.get("")
 async def get_journal(request: Request):
-    email = _get_email(request)
+    email = get_email(request)
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     rows = conn.execute(
@@ -98,7 +86,7 @@ async def get_journal(request: Request):
 
 @router.post("")
 async def create_entry(entry: JournalEntry, request: Request):
-    email = _get_email(request)
+    email = get_email(request)
     now = datetime.now(timezone.utc).isoformat()
     conn = sqlite3.connect(str(DB_PATH))
     cursor = conn.execute(
@@ -127,7 +115,7 @@ async def create_entry(entry: JournalEntry, request: Request):
 
 @router.delete("/{entry_id}")
 async def delete_entry(entry_id: int, request: Request):
-    email = _get_email(request)
+    email = get_email(request)
     conn = sqlite3.connect(str(DB_PATH))
     result = conn.execute(
         "DELETE FROM entries WHERE id = ? AND email = ?",

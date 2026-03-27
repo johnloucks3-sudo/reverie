@@ -20,6 +20,12 @@ router = APIRouter()
 # In-memory token store — replace with Redis/DB in Phase 2
 _pending_tokens: dict[str, dict] = {}
 
+# Email whitelist — only these addresses can request magic links
+ALLOWED_EMAILS = {
+    "johnloucks3@gmail.com",
+    "susanloucks@gmail.com",
+}
+
 GMAIL_TOKEN_PATH = "/home/john/Thunderbird/gmail_token.json"
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 
@@ -30,6 +36,9 @@ class MagicRequest(BaseModel):
 
 @router.post("/magic")
 async def request_magic_link(req: MagicRequest):
+    if req.email.lower() not in ALLOWED_EMAILS:
+        # Return same response to prevent email enumeration
+        return {"detail": "Magic link sent"}
     token = secrets.token_urlsafe(32)
     _pending_tokens[token] = {
         "email": req.email,

@@ -6,10 +6,9 @@ import time
 from datetime import datetime
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request
-from jose import jwt, JWTError
+from fastapi import APIRouter, Request
 
-from app.core.config import settings
+from app.core.auth import get_email
 
 router = APIRouter()
 
@@ -49,17 +48,6 @@ SEA_COORDS: dict[str, tuple[float, float]] = {
 # Simple in-memory cache: key -> (timestamp, data)
 _cache: dict[str, tuple[float, dict]] = {}
 CACHE_TTL = 6 * 3600  # 6 hours
-
-
-def _get_email(request: Request) -> str:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing authorization header")
-    try:
-        payload = jwt.decode(auth[7:], settings.secret_key, algorithms=[settings.jwt_algorithm])
-        return payload.get("sub", "")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 def _find_coords(port_name: str, date: str) -> tuple[float, float] | None:
@@ -178,7 +166,7 @@ def _weather_description(code: int) -> str:
 @router.get("")
 async def get_weather(request: Request):
     """Get weather forecasts for all voyage ports."""
-    _get_email(request)
+    get_email(request)
 
     # Import itinerary data
     from app.routers.itinerary import get_itinerary
