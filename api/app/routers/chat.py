@@ -1,7 +1,9 @@
-"""POST /api/chat — Dani Oracle contextual responder
-MVP: keyword-matched responses with real trip data.
-Phase 2: wire to Thunderbird Dani engine via MCP.
+"""POST /api/chat — Dani Oracle via Claude Code SDK ($0, Max plan)
+Falls back to keyword responder if SDK unavailable.
 """
+
+import asyncio
+import logging
 
 from fastapi import APIRouter, HTTPException, Request
 from jose import jwt, JWTError
@@ -10,6 +12,24 @@ from pydantic import BaseModel
 from app.core.config import settings
 
 router = APIRouter()
+logger = logging.getLogger("reverie.chat")
+
+# ── Claude Code SDK import ──────────────────────────────────────────
+_SDK_AVAILABLE = False
+_sdk_query = None
+_sdk_options_cls = None
+_sdk_text_block = None
+
+try:
+    from claude_code_sdk import query as _q, ClaudeCodeOptions as _opts
+    from claude_code_sdk import TextBlock as _tb
+    _sdk_query = _q
+    _sdk_options_cls = _opts
+    _sdk_text_block = _tb
+    _SDK_AVAILABLE = True
+    logger.info("Claude Code SDK loaded — Dani AI chat enabled ($0 via Max plan)")
+except ImportError:
+    logger.warning("Claude Code SDK not available — using keyword fallback")
 
 
 def _get_email(request: Request) -> str:
@@ -27,199 +47,173 @@ class ChatRequest(BaseModel):
     message: str
 
 
-# ── Trip knowledge base ──────────────────────────────────────────────
-FLIGHTS = [
-    {"leg": "COS → SNA", "carrier": "Allegiant G4 3212", "date": "Apr 10", "time": "2:37 PM", "conf": "P5F8XF", "cost": "$200"},
-    {"leg": "LAX → HNL", "carrier": "Delta DL 443", "date": "Apr 13", "time": "6:55 PM", "seats": "2C/3A", "conf": "GW4ZHW", "cost": "$1,395.72"},
-    {"leg": "HNL → HND", "carrier": "JAL JL 73 Business", "date": "Apr 18", "time": "12:15 PM", "seats": "Sky Suite III 6G/6D", "conf": "FJHPYY", "cost": "$4,093.60"},
-    {"leg": "SEA → DEN", "carrier": "Southwest WN 4195", "date": "May 11", "time": "1:55 PM", "seats": "06E/06F", "conf": "ASC3LX", "cost": "$147.80"},
-]
+# ── Dani system prompt with full trip context ────────────────────────
+DANI_SYSTEM_PROMPT = """You are Dani Moreau, the luxury travel concierge for Dreams2Memories Travel.
+You are responding to John Loucks about his Silver Nova Pacific Crossing voyage.
+Be warm, knowledgeable, concise. You know every detail of this trip.
 
-HOTELS = [
-    {"name": "Newport Beach Marriott Bayview", "dates": "Apr 10-13", "nights": 3, "conf": "79802952", "cost": "$1,008.35"},
-    {"name": "Hale Koa Hotel, Waikiki", "dates": "Apr 13-18", "nights": 5, "conf": "10421237", "cost": "$1,545"},
-    {"name": "Hilton Tokyo Odaiba", "dates": "Apr 19-23", "nights": 4, "conf": "3337550400", "cost": "$2,770"},
-]
+TRIP OVERVIEW:
+- Travelers: John & Susan Loucks
+- Voyage: Silver Nova — 32-day Pacific Crossing
+- Full journey: Apr 10 – May 11, 2026
+- Route: Colorado Springs → Newport Beach → Honolulu → Tokyo → Pacific Crossing → Alaska → Seattle
 
-EXCURSIONS = [
-    {"name": "Kyoto Food Tour with Hiro", "date": "Apr 21", "time": "10 AM", "duration": "3h", "conf": "PE164717508", "cost": "$484.96"},
-    {"name": "Mt. Fuji & Hakone Bus Tour", "date": "Apr 22", "time": "7:50 AM", "conf": "PE164714008", "cost": "$365.62"},
-    {"name": "Hilton Odaiba → Harumi Port Transfer", "date": "Apr 23", "time": "10:30 AM", "conf": "PE151557101", "cost": "Included"},
-    {"name": "Jodogahama & Ryusendo Cave", "date": "Apr 25", "time": "8:45 AM", "duration": "4h"},
-    {"name": "Sitka Culinary Adventure", "date": "May 5", "time": "10:30 AM", "duration": "3h"},
-    {"name": "Juneau Whale Watching", "date": "May 6", "time": "11:00 AM", "duration": "4h"},
-    {"name": "Wrangell John Muir Hike", "date": "May 7", "time": "2:30 PM", "duration": "1h 45m"},
-    {"name": "Ketchikan By Land & Sea", "date": "May 8", "time": "12:00 PM", "duration": "1h 30m"},
-    {"name": "Victoria Horse-Drawn Trolley", "date": "May 10", "time": "10:00 AM", "duration": "1h"},
-]
+FLIGHTS:
+- Allegiant G4 3212 · COS → SNA · Apr 10 2:37 PM · Conf: P5F8XF · $200
+- Delta DL 443 · LAX → HNL · Apr 13 6:55 PM · Seats 2C/3A · Conf: GW4ZHW · $1,395.72
+- JAL JL 73 Business · HNL → HND · Apr 18 12:15 PM · Sky Suite III 6G/6D · Conf: FJHPYY · $4,093.60
+- Southwest WN 4195 · SEA → DEN · May 11 1:55 PM · Seats 06E/06F · Conf: ASC3LX · $147.80
 
-DINING = [
-    {"venue": "La Terrazza", "date": "Apr 23", "time": "18:30", "cost": "Included"},
-    {"venue": "The Grill", "date": "Apr 24", "time": "18:30", "cost": "Included (waitlisted)"},
-    {"venue": "Kaiseki", "date": "Apr 27", "time": "18:30", "cost": "$160"},
-    {"venue": "S.A.L.T. Chef's Table", "date": "Apr 28", "time": "18:30", "cost": "$360"},
-    {"venue": "La Terrazza", "date": "Apr 29", "time": "18:30", "cost": "Included"},
-    {"venue": "The Grill", "date": "Apr 30", "time": "18:30", "cost": "Included"},
-    {"venue": "La Dame", "date": "May 1", "time": "18:30", "cost": "$200"},
-    {"venue": "Silver Note", "date": "May 2", "time": "18:30", "cost": "Included"},
-    {"venue": "The Grill", "date": "May 3", "time": "18:30", "cost": "Included"},
-    {"venue": "La Terrazza", "date": "May 4", "time": "18:30", "cost": "Included"},
-    {"venue": "Kaiseki", "date": "May 7", "time": "19:30", "cost": "$160"},
-]
+HOTELS:
+- Newport Beach Marriott Bayview · Apr 10-13 (3 nights) · Conf: 79802952 · $1,008.35
+- Hale Koa Hotel, Waikiki Ocean View · Apr 13-18 (5 nights) · Conf: 10421237 · $1,545
+- Hilton Tokyo Odaiba, Twin Superior Deluxe · Apr 19-23 (4 nights) · Conf: 3337550400 · $2,770
+
+CRUISE:
+- Silver Nova · Cabin 8075 Superior Veranda · Deck 8 · Booking: 566910-25 · Paid in full · $10,800
+- Embark: Tokyo (Harumi) Apr 23 2:00-4:00 PM
+- Disembark: Seattle May 11 7:00 AM
+- 19 nights, 11 sea days, 7 ports of call
+
+PRE-CRUISE EXCURSIONS:
+- Kyoto Food Tour with Hiro · Apr 21 10 AM (3h) · Conf: PE164717508 · $484.96
+- Mt. Fuji & Hakone Bus Tour · Apr 22 7:50 AM · Conf: PE164714008 · $365.62
+- Hilton Odaiba → Harumi Port Transfer · Apr 23 10:30 AM · Conf: PE151557101 · Included
+
+SHIP EXCURSIONS:
+- Miyako: Jodogahama & Ryusendo Cave · Apr 25 8:45 AM (4h)
+- Sitka: Culinary Adventure · May 5 10:30 AM (3h)
+- Juneau: Whale Watching · May 6 11:00 AM (4h)
+- Wrangell: John Muir Hike · May 7 2:30 PM (1h 45m)
+- Ketchikan: By Land & Sea · May 8 12:00 PM (1h 30m)
+- Victoria: Horse-Drawn Trolley · May 10 10:00 AM (1h)
+
+DINING ABOARD (all at 18:30 unless noted):
+- Apr 23: La Terrazza · Apr 24: The Grill (waitlisted) · Apr 27: Kaiseki ($160)
+- Apr 28: S.A.L.T. Chef's Table ($360) · Apr 29: La Terrazza · Apr 30: The Grill
+- May 1: La Dame ($200) · May 2: Silver Note · May 3: The Grill · May 4: La Terrazza
+- May 5-8, 10: La Terrazza/Kaiseki at 19:30 (Alaska ports)
+
+TOTAL INVESTMENT: $22,811.05
+- Flights: $5,837.12 | Hotels: $5,323.35 | Cruise: $10,800 | Excursions: $850.58
+
+GUIDELINES:
+- Address John by name naturally
+- Give specific details (confirmation numbers, times, amounts) when relevant
+- Keep responses concise — 2-4 sentences for simple questions, more for detailed requests
+- You're a knowledgeable concierge, not a chatbot. Warm but professional.
+- If asked about something outside the trip data, say you'll look into it."""
 
 
-def _match_response(msg: str) -> str:
+def _build_max_plan_env() -> dict[str, str]:
+    """Build env dict that strips ANTHROPIC_API_KEY so SDK uses Max plan OAuth."""
+    import os
+    env = dict(os.environ)
+    env.pop("ANTHROPIC_API_KEY", None)
+    env.pop("ANTHROPIC_BASE_URL", None)
+    return env
+
+
+async def _call_dani_sdk(message: str) -> str:
+    """Call Claude via Code SDK with Dani persona. Returns response text."""
+    options = _sdk_options_cls(
+        system_prompt=DANI_SYSTEM_PROMPT,
+        model="haiku",
+        cwd="/home/john/Thunderbird",
+        permission_mode="bypassPermissions",
+        env=_build_max_plan_env(),
+    )
+
+    response_parts: list[str] = []
+
+    try:
+        async with asyncio.timeout(30):
+            async for msg in _sdk_query(prompt=message, options=options):
+                if _sdk_text_block and isinstance(msg, _sdk_text_block):
+                    response_parts.append(msg.text)
+                elif hasattr(msg, "content"):
+                    content = msg.content
+                    if isinstance(content, list):
+                        for block in content:
+                            if _sdk_text_block and isinstance(block, _sdk_text_block):
+                                response_parts.append(block.text)
+                            elif hasattr(block, "text"):
+                                response_parts.append(block.text)
+                    elif isinstance(content, str):
+                        response_parts.append(content)
+    except asyncio.TimeoutError:
+        if response_parts:
+            return "".join(response_parts)
+        return "I'm taking a moment to look that up. Could you try again?"
+    except Exception as e:
+        err_str = str(e)
+        # rate_limit_event is benign — return what we have
+        if "rate_limit_event" in err_str or "Unknown message type" in err_str:
+            if response_parts:
+                return "".join(response_parts)
+        logger.error("SDK call failed: %s", e)
+        return None
+
+    return "".join(response_parts) if response_parts else None
+
+
+# ── Keyword fallback ─────────────────────────────────────────────────
+def _keyword_response(msg: str) -> str:
     m = msg.lower()
 
-    # Flights
-    if any(w in m for w in ["flight", "fly", "plane", "airport", "allegiant", "delta", "jal", "southwest", "airline"]):
-        lines = []
-        for f in FLIGHTS:
-            seats = f" · Seats {f['seats']}" if "seats" in f else ""
-            lines.append(f"  {f['carrier']} · {f['leg']} · {f['date']} {f['time']}{seats}\n  Confirmation: {f['conf']} · {f['cost']}")
-        return "Here are all your flights, John:\n\n" + "\n\n".join(lines)
+    if any(w in m for w in ["flight", "fly", "plane", "airport", "allegiant", "delta", "jal", "southwest"]):
+        return ("Your flights:\n\n"
+                "  Allegiant G4 3212 · COS → SNA · Apr 10 2:37 PM · P5F8XF · $200\n"
+                "  Delta DL 443 · LAX → HNL · Apr 13 6:55 PM · 2C/3A · GW4ZHW · $1,395.72\n"
+                "  JAL JL 73 Business · HNL → HND · Apr 18 12:15 PM · Sky Suite III 6G/6D · FJHPYY · $4,093.60\n"
+                "  Southwest WN 4195 · SEA → DEN · May 11 1:55 PM · 06E/06F · ASC3LX · $147.80")
 
-    # Hotels
-    if any(w in m for w in ["hotel", "marriott", "hale koa", "hilton", "stay", "room", "accommodation"]):
-        lines = []
-        for h in HOTELS:
-            lines.append(f"  {h['name']} · {h['dates']} ({h['nights']} nights)\n  Confirmation: {h['conf']} · {h['cost']}")
-        return "Your hotel reservations:\n\n" + "\n\n".join(lines)
+    if any(w in m for w in ["hotel", "marriott", "hale koa", "hilton", "stay"]):
+        return ("Your hotels:\n\n"
+                "  Newport Beach Marriott Bayview · Apr 10-13 · 79802952 · $1,008.35\n"
+                "  Hale Koa Hotel, Waikiki · Apr 13-18 · 10421237 · $1,545\n"
+                "  Hilton Tokyo Odaiba · Apr 19-23 · 3337550400 · $2,770")
 
-    # Dining
-    if any(w in m for w in ["dinner", "dining", "restaurant", "eat", "food", "terrazza", "grill", "kaiseki", "dame", "salt"]):
-        lines = [f"  {d['venue']} · {d['date']} at {d['time']} · {d['cost']}" for d in DINING]
-        return "Your dining reservations aboard Silver Nova:\n\n" + "\n".join(lines) + "\n\nThe specialty restaurants (Kaiseki, S.A.L.T. Chef's Table, La Dame) have surcharges. All other venues are included with your suite."
+    if any(w in m for w in ["dinner", "dining", "restaurant", "eat", "food"]):
+        return ("Dining aboard Silver Nova — all reservations confirmed at 18:30:\n"
+                "  La Terrazza, The Grill, Kaiseki ($160), S.A.L.T. Chef's Table ($360), "
+                "La Dame ($200), Silver Note. Alaska ports shift to 19:30.")
 
-    # Excursions
-    if any(w in m for w in ["excursion", "tour", "activity", "shore", "kyoto", "fuji", "whale", "hike", "trolley", "sitka", "juneau", "ketchikan", "wrangell", "victoria"]):
-        lines = []
-        for e in EXCURSIONS:
-            dur = f" · {e['duration']}" if "duration" in e else ""
-            cost = f" · {e['cost']}" if "cost" in e else ""
-            conf = f"\n  Confirmation: {e['conf']}" if "conf" in e else ""
-            lines.append(f"  {e['name']} · {e['date']} {e['time']}{dur}{cost}{conf}")
-        return "Your excursions and shore activities:\n\n" + "\n\n".join(lines)
+    if any(w in m for w in ["cost", "total", "price", "money", "budget"]):
+        return "Total trip investment: $22,811.05 — Flights $5,837 | Hotels $5,323 | Cruise $10,800 (paid in full) | Excursions $851"
 
-    # Japan / Tokyo
-    if any(w in m for w in ["japan", "tokyo", "odaiba", "kyoto", "hakone"]):
-        return ("Your Japan leg runs April 18-23:\n\n"
-                "  JAL Business Class Sky Suite III · HNL → HND · Apr 18 12:15 PM\n"
-                "  Arrive Haneda 3:55 PM Apr 19\n"
-                "  Hilton Tokyo Odaiba · 4 nights · Apr 19-23\n"
-                "  Kyoto Food Tour with Hiro · Apr 21 10 AM (3h)\n"
-                "  Mt. Fuji & Hakone Bus Tour · Apr 22 7:50 AM\n"
-                "  Transfer to Harumi Port · Apr 23 10:30 AM\n"
-                "  Silver Nova embarkation · Apr 23 2:00-4:00 PM\n\n"
-                "The Hilton Odaiba has beautiful views of Rainbow Bridge and the Tokyo skyline. Odaiba is an excellent base for exploring the city.")
+    if any(w in m for w in ["ship", "cruise", "cabin", "silver nova", "embark"]):
+        return "Silver Nova · Cabin 8075 Superior Veranda · Deck 8 · Booking 566910-25 · Paid in full · Embark Tokyo Apr 23 · Disembark Seattle May 11 · 19 nights"
 
-    # Hawaii / Honolulu
-    if any(w in m for w in ["hawaii", "honolulu", "waikiki", "hale koa", "oahu"]):
-        return ("Your Hawaii stay runs April 13-18:\n\n"
-                "  Delta DL 443 · LAX → HNL · Apr 13 6:55 PM · Seats 2C/3A\n"
-                "  Hale Koa Hotel · Waikiki Ocean View · 5 nights\n"
-                "  Confirmation: 10421237 · $1,545\n\n"
-                "Hale Koa is right on Waikiki Beach with military resort pricing. Five full days to decompress before the Japan leg begins.")
+    if any(w in m for w in ["confirmation", "ref", "booking number"]):
+        return ("Confirmation numbers:\n"
+                "  P5F8XF (Allegiant) · GW4ZHW (Delta) · FJHPYY (JAL) · ASC3LX (Southwest)\n"
+                "  79802952 (Marriott) · 10421237 (Hale Koa) · 3337550400 (Hilton)\n"
+                "  PE164717508 (Kyoto) · PE164714008 (Fuji) · 566910-25 (Silver Nova)")
 
-    # Alaska
-    if any(w in m for w in ["alaska", "sitka", "juneau", "wrangell", "ketchikan", "inside passage"]):
-        return ("Your Alaska ports, May 5-10:\n\n"
-                "  Sitka · May 5 — Culinary Adventure 10:30 AM (3h)\n"
-                "  Juneau · May 6 — Whale Watching 11:00 AM (4h)\n"
-                "  Wrangell · May 7 — John Muir Hike 2:30 PM (1h 45m)\n"
-                "  Ketchikan · May 8 — By Land & Sea 12:00 PM (1h 30m)\n"
-                "  Inside Passage cruising · May 9\n"
-                "  Victoria, BC · May 10 — Horse-Drawn Trolley 10:00 AM (1h)\n\n"
-                "The Inside Passage stretch is the scenic highlight — keep your camera ready for glacier views.")
+    if any(w in m for w in ["hello", "hi", "hey", "good morning"]):
+        return "Hello, John. I have all the details for your Silver Nova Pacific Crossing. What would you like to know?"
 
-    # Cost / money / total
-    if any(w in m for w in ["cost", "total", "price", "spend", "money", "budget", "invest", "how much", "expensive"]):
-        return ("Your total trip investment: $22,811.05\n\n"
-                "  Flights: $5,837.12\n"
-                "  Hotels: $5,323.35\n"
-                "  Cruise (Silver Nova): $10,800.00 — paid in full\n"
-                "  Excursions & Transfers: $850.58\n\n"
-                "All bookings are confirmed. The cruise is paid in full. Specialty dining aboard ($880 total) will be charged to your onboard account.")
+    if any(w in m for w in ["help", "what can you"]):
+        return "I know everything about your 32-day voyage — flights, hotels, dining, excursions, ship details, costs, and confirmation numbers. Just ask naturally."
 
-    # Ship / cruise / cabin / silver nova
-    if any(w in m for w in ["ship", "cruise", "cabin", "silver nova", "nova", "embark", "board", "silversea"]):
-        return ("Silver Nova — Superior Veranda Suite 8075\n\n"
-                "  Booking: 566910-25 · Status: Paid in Full\n"
-                "  Embark: Tokyo (Harumi) · Apr 23, 2:00-4:00 PM\n"
-                "  Disembark: Seattle · May 11, 7:00 AM\n"
-                "  Duration: 19 nights\n"
-                "  Route: Tokyo → Miyako → Pacific Crossing → Alaska → Seattle\n"
-                "  8 sea days across the Pacific, 5 Alaska ports\n\n"
-                "Your first dinner aboard is La Terrazza at 18:30 on embarkation day.")
-
-    # Newport Beach / California
-    if any(w in m for w in ["newport", "california", "marriott", "gregory", "karen"]):
-        return ("Newport Beach · April 10-13:\n\n"
-                "  Allegiant G4 3212 · COS → SNA · Apr 10 2:37 PM\n"
-                "  Newport Beach Marriott Bayview · 3 nights\n"
-                "  Confirmation: 79802952 · $1,008.35\n"
-                "  Family time with Gregory & Karen on Apr 11-12\n\n"
-                "Beautiful start to the journey — three days of family time before the Pacific adventure begins.")
-
-    # Confirmation numbers
-    if any(w in m for w in ["confirmation", "booking number", "reference", "conf"]):
-        return ("All your confirmation numbers:\n\n"
-                "  Allegiant COS→SNA: P5F8XF\n"
-                "  Marriott Bayview: 79802952\n"
-                "  Delta LAX→HNL: GW4ZHW\n"
-                "  Hale Koa Hotel: 10421237\n"
-                "  JAL Business HNL→HND: FJHPYY\n"
-                "  Hilton Odaiba: 3337550400\n"
-                "  Kyoto Food Tour: PE164717508\n"
-                "  Fuji/Hakone Tour: PE164714008\n"
-                "  Port Transfer: PE151557101\n"
-                "  Silver Nova: 566910-25\n"
-                "  Southwest SEA→DEN: ASC3LX")
-
-    # Schedule / what's next / upcoming
-    if any(w in m for w in ["schedule", "next", "upcoming", "what's coming", "when", "timeline"]):
-        return ("Your journey timeline:\n\n"
-                "  Apr 10 — Depart Colorado Springs → Newport Beach\n"
-                "  Apr 13 — Fly to Honolulu · 5 nights Waikiki\n"
-                "  Apr 18 — JAL Business to Tokyo\n"
-                "  Apr 21 — Kyoto Food Tour\n"
-                "  Apr 22 — Mt. Fuji & Hakone\n"
-                "  Apr 23 — Embark Silver Nova\n"
-                "  Apr 25 — Miyako port call\n"
-                "  Apr 24-May 4 — Pacific Crossing (sea days)\n"
-                "  May 5-8 — Alaska ports (Sitka, Juneau, Wrangell, Ketchikan)\n"
-                "  May 10 — Victoria, BC\n"
-                "  May 11 — Disembark Seattle · Fly home")
-
-    # Greeting / hello
-    if any(w in m for w in ["hello", "hi", "hey", "good morning", "good evening"]):
-        return "Hello, John. How can I help with your Silver Nova voyage? I have all your flights, hotels, dining, excursions, and ship details at hand."
-
-    # Thank you
-    if any(w in m for w in ["thank", "thanks"]):
-        return "You're welcome, John. I'm here whenever you need anything for your voyage."
-
-    # Help / what can you do
-    if any(w in m for w in ["help", "what can you", "what do you know"]):
-        return ("I know everything about your 32-day Silver Nova Pacific Crossing. Ask me about:\n\n"
-                "  Flights — all 4 legs with confirmations\n"
-                "  Hotels — Marriott, Hale Koa, Hilton Odaiba\n"
-                "  Dining — all 11 reservations aboard\n"
-                "  Excursions — Japan tours + Alaska shore activities\n"
-                "  Ship details — cabin, embark/disembark, route\n"
-                "  Costs — full financial breakdown\n"
-                "  Confirmation numbers — every booking\n"
-                "  Destinations — Japan, Hawaii, Alaska, Newport Beach\n\n"
-                "Just ask naturally. I'm Dani, your concierge.")
-
-    # Default
-    return ("I'd be happy to help with that, John. For your Silver Nova voyage, I can pull up details on "
-            "flights, hotels, dining reservations, excursions, ship details, costs, or any specific destination. "
-            "What would you like to know?")
+    return ("I'd be happy to help with that, John. Ask me about flights, hotels, dining, "
+            "excursions, ship details, costs, or any destination on your Silver Nova voyage.")
 
 
 @router.post("")
 async def chat(req: ChatRequest, request: Request):
     _get_email(request)
-    reply = _match_response(req.message)
+
+    # Try SDK first (free via Max plan)
+    if _SDK_AVAILABLE:
+        try:
+            result = await _call_dani_sdk(req.message)
+            if result:
+                return {"role": "dani", "text": result}
+        except Exception as e:
+            logger.warning("SDK chat failed, falling back to keywords: %s", e)
+
+    # Keyword fallback
+    reply = _keyword_response(req.message)
     return {"role": "dani", "text": reply}
