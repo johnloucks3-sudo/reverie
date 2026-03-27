@@ -13,6 +13,11 @@ interface Booking {
   status: string; amount_usd: number
 }
 interface BookingsResp { bookings: Booking[] }
+interface WeatherForecast {
+  port: string; date: string; type: string
+  forecast: { temp_high_f: number; temp_low_f: number; wind_max_mph: number; condition: string } | null
+}
+interface WeatherResp { forecasts: WeatherForecast[] }
 
 type Tab = 'itinerary' | 'bookings'
 
@@ -49,12 +54,16 @@ function formatMoney(n: number) {
 export default function VoyageScreen() {
   const [itin, setItin] = useState<Itinerary | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [weather, setWeather] = useState<Map<string, WeatherForecast>>(new Map())
   const [error, setError] = useState(false)
   const [tab, setTab] = useState<Tab>('itinerary')
 
   useEffect(() => {
     api.get<Itinerary>('/api/itinerary').then(setItin).catch(() => setError(true))
     api.get<BookingsResp>('/api/bookings').then(r => setBookings(r.bookings)).catch(() => {})
+    api.get<WeatherResp>('/api/weather')
+      .then(r => setWeather(new Map(r.forecasts.map(f => [f.date, f]))))
+      .catch(() => {})
   }, [])
 
   const totalSpend = bookings.reduce((s, b) => s + b.amount_usd, 0)
@@ -125,6 +134,7 @@ export default function VoyageScreen() {
         <div className="px-5 py-5 space-y-2.5">
           {itin.ports.map((port, idx) => {
             const style = TYPE_STYLES[port.type] ?? TYPE_STYLES.sea
+            const w = weather.get(port.date)
             return (
               <div
                 key={idx}
@@ -138,9 +148,16 @@ export default function VoyageScreen() {
                     {typeLabel(port.type)}
                   </span>
                 </div>
-                <p className="text-dusk font-ui font-ui-xlight text-xs mb-1">
-                  {formatDate(port.date)}
-                </p>
+                <div className="flex justify-between items-center mb-1">
+                  <p className="text-dusk font-ui font-ui-xlight text-xs">
+                    {formatDate(port.date)}
+                  </p>
+                  {w?.forecast && (
+                    <p className="text-dusk font-ui font-ui-xlight text-xs">
+                      {w.forecast.condition} &middot; {Math.round(w.forecast.temp_high_f)}&deg;/{Math.round(w.forecast.temp_low_f)}&deg;F
+                    </p>
+                  )}
+                </div>
                 {port.notes && (
                   <p className="text-ember font-ui font-ui-xlight text-xs leading-relaxed">
                     {port.notes}

@@ -6,6 +6,7 @@ import LoginPage from '@/features/auth/LoginPage'
 import HorizonScreen from '@/features/home/HorizonScreen'
 import OracleScreen from '@/features/oracle/OracleScreen'
 import VoyageScreen from '@/features/voyage/VoyageScreen'
+import BridgeScreen from '@/features/bridge/BridgeScreen'
 import ChamberScreen from '@/features/chamber/ChamberScreen'
 
 const queryClient = new QueryClient({
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/" element={<PrivateRoute element={<HorizonScreen />} />} />
           <Route path="/oracle" element={<PrivateRoute element={<OracleScreen />} />} />
           <Route path="/voyage" element={<PrivateRoute element={<VoyageScreen />} />} />
+          <Route path="/bridge" element={<PrivateRoute element={<BridgeScreen />} />} />
           <Route path="/chamber" element={<PrivateRoute element={<ChamberScreen />} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
