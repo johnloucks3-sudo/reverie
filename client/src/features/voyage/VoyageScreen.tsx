@@ -39,35 +39,36 @@ const BOOKING_COLORS: Record<string, string> = {
 const px = (id: number | string, ext = 'jpeg') =>
   `https://images.pexels.com/photos/${id}/pexels-photo-${id}.${ext}?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940`
 
-// Port / destination images
+// Port / destination images — canonical IDs from EARA Daily Itinerary A (booking 566904-25)
 const PORT_IMAGES: Record<string, string> = {
-  'Sitka':    px(12858837),
-  'Juneau':   px(3675499),
-  'Wrangell': px(36681675),
-  'Ketchikan':px(6249398),
-  'Victoria': px(3989748),
-  'Tokyo':    px(4382241),
+  'Sitka':    px(34145844),  // EARA canonical
+  'Juneau':   px(12897647),  // EARA canonical
+  'Wrangell': px(36075386),  // EARA canonical
+  'Ketchikan':px(12761922),  // EARA canonical
+  'Victoria': px(35380038),  // EARA canonical
+  'Kodiak':   px(17444649),  // EARA canonical
+  'Yokohama': px(23023919),  // EARA canonical
+  'Tokyo':    px(23023919),  // EARA canonical
   'Honolulu': px(4321914),
   'Newport':  px(26761479),
   'Kyoto':    px(16660223),
-  'Miyako':   'https://images.pexels.com/photos/21704/pexels-photo.jpg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
-  'Aomori':   px(7350401),
+  'Miyako':   px(7833735),   // EARA canonical
+  'Aomori':   px(15925248),  // EARA canonical
   'Seattle':  px(5872656),
   'Fuji':     px(19775493),
   'Hakone':   px(19775493),
 }
 
 // Sea day images — context-matched per D2M itinerary production guide
-// First sea day → ship exterior | Dining evenings → ship interior | Date Line → balcony | Alaska transition → seascape
+// Date Line day uses EARA canonical ID. Others: ship exterior / dining / seascape context.
 const SEA_IMAGES: Record<string, string> = {
   '2026-04-24': px(36145527),   // Silversea ship exterior — first morning at sea
   '2026-04-27': px(5769594),    // Fine dining atmosphere — Kaiseki evening
-  '2026-04-28': px(36160120),   // Veranda/balcony suite — Date Line · S.A.L.T.
+  '2026-04-28': px(36160120),   // Veranda/balcony suite — S.A.L.T. Chef's Table
   '2026-04-29': px(2852124),    // Pool deck ship life — La Terrazza
-  '2026-04-30': px(36288695),   // Suite/balcony — The Grill, turning north
+  '2026-04-30': px(11679685),   // Date Line crossing — EARA canonical
   '2026-05-01': px(7762062),    // Dramatic North Pacific — La Dame · Gulf of Alaska
   '2026-05-02': px(5769707),    // Ship lounge/interior — Silver Note jazz
-  '2026-05-03': px(7498693),    // Alaska seascape — nearing Sitka
   '2026-05-04': px(5379488),    // North Pacific coastal — eve of Alaska
   '2026-05-09': px(36325198),   // Inside Passage scenic
 }
