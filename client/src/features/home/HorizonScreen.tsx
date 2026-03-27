@@ -103,7 +103,7 @@ export default function HorizonScreen() {
         <img
           src={SHIP_IMG}
           alt=""
-          className="absolute inset-0 w-full h-full object-cover opacity-[0.15] pointer-events-none select-none"
+          className="absolute inset-0 w-full h-full object-cover opacity-[0.38] pointer-events-none select-none"
           onError={e => { e.currentTarget.style.display = 'none' }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-vault/40 via-vault/70 to-vault pointer-events-none" />

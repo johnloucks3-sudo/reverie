@@ -54,7 +54,7 @@ const PORT_IMAGES: Record<string, string> = {
   'Kyoto':    px(16660223),
   'Miyako':   px(7833735),   // EARA canonical
   'Aomori':   px(15925248),  // EARA canonical
-  'Seattle':  px(5872656),
+  'Seattle':  px(1486733),   // Seattle skyline + Space Needle
   'Fuji':     px(19775493),
   'Hakone':   px(19775493),
 }
