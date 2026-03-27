@@ -30,19 +30,19 @@ const TYPE_STYLES: Record<string, { badge: string; border: string }> = {
   excursion:    { badge: 'bg-gold/20 text-gold', border: 'border-gold/30' },
 }
 
-// Port thumbnail images — matched by partial port name
+// Port thumbnail images — Pexels CDN (same source as D2M itinerary generator)
 const PORT_IMAGES: Record<string, string> = {
-  'Sitka':    'https://upload.wikimedia.org/wikipedia/commons/5/5d/Mount_Edgecumbe_with_Sitka_Houses_-_panoramio.jpg',
-  'Juneau':   'https://upload.wikimedia.org/wikipedia/commons/0/05/Glaciar_Mendenhall%2C_Juneau%2C_Alaska%2C_Estados_Unidos%2C_2017-08-17%2C_DD_02.jpg',
-  'Wrangell': 'https://upload.wikimedia.org/wikipedia/commons/f/fc/Wrangell%2C_Alaska.jpg',
-  'Ketchikan':'https://upload.wikimedia.org/wikipedia/commons/8/86/Ketchikan_Alaska.jpg',
-  'Victoria': 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Victoria_BC_Harbour.jpg',
-  'Tokyo':    'https://upload.wikimedia.org/wikipedia/commons/b/b0/Shibuya_and_Shinjuku_from_Yebisu_Garden_Place_Tower%2C_Ebisu%2C_Tokyo%2C_Japan%2C_2024_May.jpg',
-  'Honolulu': 'https://upload.wikimedia.org/wikipedia/commons/d/d2/Aerial_view_of_Waikiki_Beach_and_Honolulu%2C_Hawaii%2C_Highsmith.jpg',
-  'Newport':  'https://upload.wikimedia.org/wikipedia/commons/6/6b/Newport_Beach_Pier.jpg',
-  'Kyoto':    'https://upload.wikimedia.org/wikipedia/commons/5/58/Fushimi_Inari_Taisha_%289498035523%29.jpg',
-  'Miyako':   'https://upload.wikimedia.org/wikipedia/commons/a/a7/Jodogahama_beach.jpg',
-  'Seattle':  'https://upload.wikimedia.org/wikipedia/commons/e/e3/Seattle_Kerry_Park_Skyline.jpg',
+  'Sitka':    'https://images.pexels.com/photos/12858837/pexels-photo-12858837.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
+  'Juneau':   'https://images.pexels.com/photos/3675499/pexels-photo-3675499.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
+  'Wrangell': 'https://images.pexels.com/photos/36681675/pexels-photo-36681675.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
+  'Ketchikan':'https://images.pexels.com/photos/6249398/pexels-photo-6249398.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
+  'Victoria': 'https://images.pexels.com/photos/3989748/pexels-photo-3989748.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
+  'Tokyo':    'https://images.pexels.com/photos/4382241/pexels-photo-4382241.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
+  'Honolulu': 'https://images.pexels.com/photos/4321914/pexels-photo-4321914.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
+  'Newport':  'https://images.pexels.com/photos/26761479/pexels-photo-26761479.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
+  'Kyoto':    'https://images.pexels.com/photos/16660223/pexels-photo-16660223.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
+  'Miyako':   'https://images.pexels.com/photos/21704/pexels-photo.jpg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
+  'Seattle':  'https://images.pexels.com/photos/5872656/pexels-photo-5872656.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
 }
 
 function getPortImage(name: string): string | null {
