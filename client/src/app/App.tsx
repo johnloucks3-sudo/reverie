@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { prefetchVoyageData } from '@/shared/lib/prefetch'
 
 // Screens
 import LoginPage from '@/features/auth/LoginPage'
@@ -22,6 +24,9 @@ const queryClient = new QueryClient({
 
 function PrivateRoute({ element }: { element: React.ReactElement }) {
   const jwt = localStorage.getItem('reverie_token')
+  useEffect(() => {
+    if (jwt) prefetchVoyageData()
+  }, [jwt])
   return jwt ? element : <Navigate to="/login" replace />
 }
 

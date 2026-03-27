@@ -22,22 +22,21 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            // Thunderbird MCP API — NetworkFirst, 10s timeout
-            urlPattern: /^https:\/\/api\.d2mluxury\.quest\/.*/i,
-            handler: 'NetworkFirst',
+            // REVERIE API — StaleWhileRevalidate so cached data serves instantly at sea
+            urlPattern: /^https:\/\/api-reverie\.d2mluxury\.quest\/.*/i,
+            handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'thunderbird-api-v1',
-              networkTimeoutSeconds: 10,
+              cacheName: 'reverie-api-v1',
               cacheableResponse: { statuses: [0, 200] },
               expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 // 24hr
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days — survives the whole voyage
               }
             }
           },
           {
-            // Static assets (PDFs, images) — CacheFirst
-            urlPattern: /\.(?:png|jpg|jpeg|webp|pdf)$/i,
+            // Static assets (images) — CacheFirst, long TTL
+            urlPattern: /\.(?:png|jpg|jpeg|webp|svg|pdf)$/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'static-assets-v1',
