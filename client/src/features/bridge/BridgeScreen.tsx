@@ -47,6 +47,38 @@ function formatDate(iso: string) {
   return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
+const LOCATION_TZ: Record<string, string> = {
+  'Colorado Springs': 'America/Denver',
+  'Newport Beach': 'America/Los_Angeles',
+  'Honolulu': 'Pacific/Honolulu',
+  'Haneda Airport': 'Asia/Tokyo',
+  'Tokyo (Odaiba)': 'Asia/Tokyo',
+  'Kyoto': 'Asia/Tokyo',
+  'Mt. Fuji': 'Asia/Tokyo',
+  'Tokyo (Harumi)': 'Asia/Tokyo',
+  'Miyako': 'Asia/Tokyo',
+  'Pacific Ocean': 'Asia/Tokyo',
+  'International Date Line': 'Pacific/Honolulu',
+  'North Pacific': 'America/Anchorage',
+  'Gulf of Alaska': 'America/Anchorage',
+  'Sitka': 'America/Sitka',
+  'Juneau': 'America/Sitka',
+  'Wrangell': 'America/Sitka',
+  'Ketchikan': 'America/Sitka',
+  'Inside Passage': 'America/Vancouver',
+  'Victoria': 'America/Vancouver',
+  'Seattle': 'America/Los_Angeles',
+}
+
+function formatClock(tz: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour: 'numeric', minute: '2-digit',
+    hour12: true, timeZoneName: 'short',
+  }).format(new Date())
+}
+
+const SHIP_IMG = 'https://cdn.sanity.io/images/rd0y3pad/production/5946a7b3eb1ac569f3603639c0962c97c1cd9230-4032x3024.jpg?w=1200&q=80&fit=max&auto=format'
+
 const WP_COLORS: Record<string, string> = {
   origin: '#9B8EC4',
   'pre-cruise': '#9B8EC4',
@@ -146,6 +178,31 @@ export default function BridgeScreen() {
         </div>
       )}
 
+      {/* Time Zone Clocks */}
+      {progress && (
+        <div className="px-6 py-4 border-b border-between">
+          <p className="text-dusk font-ui font-ui-xlight text-xs tracking-widest uppercase mb-3">Current Time</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-layer rounded-lg p-4 border border-between text-center">
+              <p className="text-ember font-ui font-ui-xlight text-[10px] uppercase tracking-widest mb-1">Home</p>
+              <p className="text-vellum font-ui font-ui-light text-base leading-tight">
+                {formatClock('America/Denver')}
+              </p>
+              <p className="text-dusk font-ui font-ui-xlight text-[9px] mt-0.5">Colorado Springs</p>
+            </div>
+            <div className="bg-layer rounded-lg p-4 border border-gold/25 text-center">
+              <p className="text-ember font-ui font-ui-xlight text-[10px] uppercase tracking-widest mb-1">Here</p>
+              <p className="text-gold font-ui font-ui-light text-base leading-tight">
+                {formatClock(LOCATION_TZ[progress.current_position.label] ?? 'America/Denver')}
+              </p>
+              <p className="text-dusk font-ui font-ui-xlight text-[9px] mt-0.5 truncate">
+                {progress.current_position.label}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Map */}
       {data && (
         <div className="px-4 py-4">
@@ -228,9 +285,23 @@ export default function BridgeScreen() {
       {data && (
         <div className="px-6 py-4 border-b border-between">
           <p className="text-dusk font-ui font-ui-xlight text-xs tracking-widest uppercase mb-3">Ship Details</p>
-          <div className="bg-layer rounded-xl p-5 border border-between">
-            <p className="text-gold font-display text-xl font-light mb-1">{data.ship.name}</p>
-            <p className="text-dusk font-ui font-ui-xlight text-xs mb-3">{data.ship.operator}</p>
+          <div className="bg-layer rounded-xl border border-between overflow-hidden">
+            <div className="relative h-36 bg-vault">
+              <img
+                src={SHIP_IMG}
+                alt="Silver Nova"
+                className="w-full h-full object-cover opacity-70"
+                onError={e => { e.currentTarget.style.display = 'none' }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-layer/90 via-layer/30 to-transparent" />
+              <div className="absolute bottom-3 left-4">
+                <p className="text-gold font-display text-xl font-light leading-tight">{data.ship.name}</p>
+                <p className="text-dusk font-ui font-ui-xlight text-[10px]">{data.ship.operator}</p>
+              </div>
+            </div>
+            <div className="p-5">
+            <p className="text-gold font-display text-xl font-light mb-1 sr-only">{data.ship.name}</p>
+            <p className="text-dusk font-ui font-ui-xlight text-xs mb-3 sr-only">{data.ship.operator}</p>
             <div className="grid grid-cols-2 gap-y-2.5 gap-x-4">
               <div>
                 <p className="text-ember font-ui font-ui-xlight text-[10px] uppercase">Gross Tonnage</p>
@@ -257,7 +328,8 @@ export default function BridgeScreen() {
                 <p className="text-vellum font-ui font-ui-light text-sm">{data.ship.flag}</p>
               </div>
             </div>
-          </div>
+            </div>{/* /p-5 */}
+          </div>{/* /card */}
         </div>
       )}
 
@@ -395,6 +467,29 @@ export default function BridgeScreen() {
               Ship: Deck 4 Med Center<br />Emergency: 911 / 112
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Emergency Contacts */}
+      <div className="px-6 py-4 border-t border-between">
+        <p className="text-dusk font-ui font-ui-xlight text-xs tracking-widest uppercase mb-3">Emergency Contacts</p>
+        <div className="bg-layer rounded-xl p-5 border border-witness/20 space-y-3.5">
+          {[
+            { label: 'Ship Medical Center', detail: 'Deck 4 · Call 911 (internal)', note: 'Silver Nova' },
+            { label: 'Silversea Guest Services', detail: '+1 800-722-9955', note: '24/7' },
+            { label: 'D2M Concierge', detail: '+1 719-291-0742', note: 'John · Dreams2Memories' },
+            { label: 'US Embassy Tokyo', detail: '+81 3-3224-5000', note: 'Pre-cruise · Apr 19–23' },
+            { label: 'US Consulate Sapporo', detail: '+81 11-641-1115', note: 'Hokkaido coverage' },
+            { label: 'Global Emergency', detail: '112', note: 'International SOS' },
+          ].map((c, i) => (
+            <div key={i} className="flex justify-between items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-vellum font-ui font-ui-light text-sm truncate">{c.label}</p>
+                <p className="text-ember font-ui font-ui-xlight text-[10px]">{c.note}</p>
+              </div>
+              <p className="text-dusk font-ui font-ui-xlight text-xs text-right shrink-0">{c.detail}</p>
+            </div>
+          ))}
         </div>
       </div>
 

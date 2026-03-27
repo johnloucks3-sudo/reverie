@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import auth, itinerary, bookings, contact, chat, documents, profile, weather, bridge, journal
+from app.routers import auth, itinerary, bookings, contact, chat, documents, profile, weather, bridge, journal, sea_letters
 
 app = FastAPI(
     title="REVERIE API",
@@ -34,6 +34,7 @@ app.include_router(profile.router, prefix="/api/profile", tags=["profile"])
 app.include_router(weather.router, prefix="/api/weather", tags=["weather"])
 app.include_router(bridge.router, prefix="/api/bridge", tags=["bridge"])
 app.include_router(journal.router, prefix="/api/journal", tags=["journal"])
+app.include_router(sea_letters.router, prefix="/api/sea-letters", tags=["sea-letters"])
 
 
 @app.get("/api/health")

@@ -58,6 +58,7 @@ export default function JournalScreen() {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
 
   // New entry form state
   const [note, setNote] = useState('')
@@ -133,6 +134,11 @@ export default function JournalScreen() {
   }
 
   const handleDelete = async (id: number) => {
+    if (pendingDeleteId !== id) {
+      setPendingDeleteId(id)
+      return
+    }
+    setPendingDeleteId(null)
     try {
       await api.delete(`/api/journal/${id}`)
       setEntries(prev => prev.filter(e => e.id !== id))
@@ -334,14 +340,31 @@ export default function JournalScreen() {
                   </span>
                 )}
               </div>
-              <button
-                onClick={() => handleDelete(entry.id)}
-                className="text-ember/40 hover:text-witness transition-colors p-0.5"
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
+              {pendingDeleteId === entry.id ? (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setPendingDeleteId(null)}
+                    className="text-ember/50 hover:text-dusk transition-colors font-ui font-ui-xlight text-[10px] tracking-wider uppercase"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleDelete(entry.id)}
+                    className="text-witness font-ui font-ui-xlight text-[10px] tracking-wider uppercase hover:text-witness/80 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleDelete(entry.id)}
+                  className="text-ember/30 hover:text-witness/60 transition-colors p-0.5"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             {/* Note text */}

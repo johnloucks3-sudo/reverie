@@ -14,6 +14,8 @@ interface Booking {
   status: string; amount_usd: number
 }
 interface BookingsResp { bookings: Booking[] }
+interface SeaLetter { date: string; day_label: string; location: string; letter: string }
+interface SeaLettersResp { letters: SeaLetter[] }
 
 function formatDate(iso: string) {
   return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -37,19 +39,55 @@ const TYPE_ICON: Record<string, string> = {
   transfer: 'M5 17h14M7 9l5-5 5 5M12 4v12',
 }
 
+const SHIP_IMG = 'https://cdn.sanity.io/images/rd0y3pad/production/5946a7b3eb1ac569f3603639c0962c97c1cd9230-4032x3024.jpg?w=1200&q=80&fit=max&auto=format'
+
+const TYPE_BADGE: Record<string, string> = {
+  embark:    'border-gold/40 text-gold',
+  disembark: 'border-gold/40 text-gold',
+  port:      'border-ember/40 text-ember',
+  sea:       'border-ether/40 text-ether',
+  excursion: 'border-ember/40 text-ember',
+  'pre-cruise': 'border-dusk/40 text-dusk',
+}
+
+const TYPE_LABEL: Record<string, string> = {
+  embark: 'Embarkation', disembark: 'Disembarkation',
+  port: 'Port Day', sea: 'Day at Sea', excursion: 'Excursion',
+  'pre-cruise': 'Pre-Cruise',
+}
+
 export default function HorizonScreen() {
   const [itin, setItin] = useState<Itinerary | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [countries, setCountries] = useState<string[]>([])
+  const [seaLetters, setSeaLetters] = useState<Map<string, SeaLetter>>(new Map())
+  const [letterExpanded, setLetterExpanded] = useState(false)
 
   useEffect(() => {
     api.get<Itinerary>('/api/itinerary').then(setItin).catch(() => {})
     api.get<BookingsResp>('/api/bookings').then(r => setBookings(r.bookings)).catch(() => {})
     api.get<{ stats: { countries: string[] } }>('/api/profile').then(r => setCountries(r.stats.countries)).catch(() => {})
+    api.get<SeaLettersResp>('/api/sea-letters').then(r => {
+      setSeaLetters(new Map(r.letters.map(l => [l.date, l])))
+    }).catch(() => {})
   }, [])
 
   const firstName = itin?.client_name?.split(' ')[0] ?? 'Traveler'
   const countdown = itin ? daysUntil(itin.full_journey_start) : null
+
+  // Voyage phase calculation
+  const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0)
+  const journeyStart = itin ? new Date(itin.full_journey_start + 'T00:00:00') : null
+  const disembarkDate = itin ? new Date(itin.disembark_date + 'T00:00:00') : null
+  const daysElapsed = journeyStart
+    ? Math.floor((todayMidnight.getTime() - journeyStart.getTime()) / 86400000)
+    : -1
+  const voyageDay = daysElapsed + 1
+  const voyageOver = disembarkDate ? todayMidnight > disembarkDate : false
+
+  const todayISO = todayMidnight.toISOString().split('T')[0]
+  const todayPort = itin?.ports.find(p => p.date === todayISO) ?? null
+  const todayLetter = seaLetters.get(todayISO) ?? null
   const totalSpend = bookings.reduce((s, b) => s + b.amount_usd, 0)
   const confirmedCount = bookings.filter(b => b.status === 'confirmed' || b.status === 'paid in full').length
 
@@ -61,7 +99,15 @@ export default function HorizonScreen() {
   return (
     <div className="min-h-dvh bg-vault pb-24 animate-fade-in">
       {/* Header */}
-      <div className="px-8 pt-10 pb-6">
+      <div className="relative px-8 pt-10 pb-6 overflow-hidden">
+        <img
+          src={SHIP_IMG}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover opacity-[0.15] pointer-events-none select-none"
+          onError={e => { e.currentTarget.style.display = 'none' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-vault/40 via-vault/70 to-vault pointer-events-none" />
+        <div className="relative z-10">
         <div className="mb-8 text-center">
           <svg className="w-10 h-10 mx-auto mb-3 text-gold" viewBox="0 0 48 48" fill="currentColor">
             <path d="M 12 24 Q 18 18 24 18 Q 20 24 24 30 Q 18 30 12 24 Z" />
@@ -75,20 +121,104 @@ export default function HorizonScreen() {
         <p className="text-dusk font-ui font-ui-xlight text-sm text-center">
           Your voyage awaits.
         </p>
+        </div>{/* /z-10 */}
       </div>
 
-      {/* Countdown Card */}
+      {/* Countdown / Voyage Day Card */}
       {countdown !== null && (
         <div className="px-6 mb-6">
           <div className="bg-layer rounded-xl p-6 border border-between text-center">
-            <p className="text-gold font-display text-6xl font-light mb-1">{countdown}</p>
-            <p className="text-dusk font-ui font-ui-xlight text-xs tracking-widest uppercase">
-              days until departure
-            </p>
+            {countdown > 0 ? (
+              <>
+                <p className="text-gold font-display text-6xl font-light mb-1">{countdown}</p>
+                <p className="text-dusk font-ui font-ui-xlight text-xs tracking-widest uppercase">
+                  days until departure
+                </p>
+              </>
+            ) : voyageOver ? (
+              <>
+                <p className="text-gold font-display text-2xl font-light mb-2">Voyage Complete</p>
+                <p className="text-dusk font-ui font-ui-xlight text-xs tracking-widest uppercase">
+                  The memories are yours
+                </p>
+              </>
+            ) : voyageDay === 1 ? (
+              <>
+                <p className="text-gold font-display text-5xl font-light mb-2">It begins.</p>
+                <p className="text-dusk font-ui font-ui-xlight text-xs tracking-widest uppercase">
+                  Departure Day
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-gold font-display text-6xl font-light mb-1">{voyageDay}</p>
+                <p className="text-dusk font-ui font-ui-xlight text-xs tracking-widest uppercase">
+                  Day of {itin?.full_journey_days ?? 32}
+                </p>
+              </>
+            )}
             <p className="text-ember font-ui font-ui-xlight text-xs mt-2">
               {itin ? formatDate(itin.full_journey_start) : ''}
               {itin ? ` — ${formatDate(itin.disembark_date)}` : ''}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Today Card */}
+      {todayPort && (
+        <div className="px-6 mb-6">
+          <div className="bg-layer rounded-xl p-5 border border-gold/40"
+            style={{ boxShadow: '0 0 20px rgba(232, 192, 122, 0.14)' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-gold font-ui font-ui-xlight text-[10px] tracking-widest uppercase">Today</span>
+              <span className={`font-ui font-ui-xlight text-[9px] tracking-widest uppercase px-2 py-0.5 rounded-full border ${TYPE_BADGE[todayPort.type] ?? 'border-dusk/40 text-dusk'}`}>
+                {TYPE_LABEL[todayPort.type] ?? todayPort.type}
+              </span>
+            </div>
+            <p className="text-vellum font-display text-xl font-light mb-2">{todayPort.name}</p>
+            {todayPort.notes && (
+              <p className="text-ember font-ui font-ui-xlight text-xs leading-relaxed">{todayPort.notes}</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Sea Letter */}
+      {todayLetter && (
+        <div className="px-6 mb-6">
+          <div className="bg-layer rounded-xl border border-ether/20"
+            style={{ boxShadow: '0 0 24px rgba(141, 165, 185, 0.07)' }}>
+            <button
+              className="w-full p-5 text-left"
+              onClick={() => setLetterExpanded(e => !e)}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-ether font-ui font-ui-xlight text-[10px] tracking-widest uppercase mb-0.5">
+                    Today's Letter
+                  </p>
+                  <p className="text-vellum font-display text-base font-light">{todayLetter.day_label}</p>
+                  <p className="text-dusk font-ui font-ui-xlight text-[10px] mt-0.5">{todayLetter.location}</p>
+                </div>
+                <svg
+                  className={`w-4 h-4 text-ether shrink-0 transition-transform duration-300 ${letterExpanded ? 'rotate-180' : ''}`}
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </div>
+            </button>
+            {letterExpanded && (
+              <div className="px-5 pb-5 border-t border-ether/10">
+                <p className="text-vellum font-ui font-ui-light text-sm leading-relaxed whitespace-pre-line pt-4">
+                  {todayLetter.letter}
+                </p>
+                <p className="text-dusk font-ui font-ui-xlight text-[10px] mt-4 text-right tracking-wider">
+                  — Dani, Dreams2Memories
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}

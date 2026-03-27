@@ -30,6 +30,28 @@ const TYPE_STYLES: Record<string, { badge: string; border: string }> = {
   excursion:    { badge: 'bg-gold/20 text-gold', border: 'border-gold/30' },
 }
 
+// Port thumbnail images — matched by partial port name
+const PORT_IMAGES: Record<string, string> = {
+  'Sitka':    'https://upload.wikimedia.org/wikipedia/commons/5/5d/Mount_Edgecumbe_with_Sitka_Houses_-_panoramio.jpg',
+  'Juneau':   'https://upload.wikimedia.org/wikipedia/commons/0/05/Glaciar_Mendenhall%2C_Juneau%2C_Alaska%2C_Estados_Unidos%2C_2017-08-17%2C_DD_02.jpg',
+  'Wrangell': 'https://upload.wikimedia.org/wikipedia/commons/f/fc/Wrangell%2C_Alaska.jpg',
+  'Ketchikan':'https://upload.wikimedia.org/wikipedia/commons/8/86/Ketchikan_Alaska.jpg',
+  'Victoria': 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Victoria_BC_Harbour.jpg',
+  'Tokyo':    'https://upload.wikimedia.org/wikipedia/commons/b/b0/Shibuya_and_Shinjuku_from_Yebisu_Garden_Place_Tower%2C_Ebisu%2C_Tokyo%2C_Japan%2C_2024_May.jpg',
+  'Honolulu': 'https://upload.wikimedia.org/wikipedia/commons/d/d2/Aerial_view_of_Waikiki_Beach_and_Honolulu%2C_Hawaii%2C_Highsmith.jpg',
+  'Newport':  'https://upload.wikimedia.org/wikipedia/commons/6/6b/Newport_Beach_Pier.jpg',
+  'Kyoto':    'https://upload.wikimedia.org/wikipedia/commons/5/58/Fushimi_Inari_Taisha_%289498035523%29.jpg',
+  'Miyako':   'https://upload.wikimedia.org/wikipedia/commons/a/a7/Jodogahama_beach.jpg',
+  'Seattle':  'https://upload.wikimedia.org/wikipedia/commons/e/e3/Seattle_Kerry_Park_Skyline.jpg',
+}
+
+function getPortImage(name: string): string | null {
+  for (const [key, url] of Object.entries(PORT_IMAGES)) {
+    if (name.toLowerCase().includes(key.toLowerCase())) return url
+  }
+  return null
+}
+
 const BOOKING_COLORS: Record<string, string> = {
   flight: 'text-ether',
   hotel: 'text-witness',
@@ -135,19 +157,40 @@ export default function VoyageScreen() {
           {itin.ports.map((port, idx) => {
             const style = TYPE_STYLES[port.type] ?? TYPE_STYLES.sea
             const w = weather.get(port.date)
+            const thumb = getPortImage(port.name)
             return (
               <div
                 key={idx}
-                className={`bg-layer rounded-lg p-4 border ${style.border} hover:bg-hover transition-colors duration-300`}
+                className={`bg-layer rounded-lg border ${style.border} hover:bg-hover transition-colors duration-300 overflow-hidden`}
               >
-                <div className="flex justify-between items-start mb-1.5">
-                  <p className="text-vellum font-display text-base font-light flex-1 mr-3">
-                    {port.name}
-                  </p>
-                  <span className={`${style.badge} font-ui font-ui-xlight text-[10px] tracking-wider uppercase px-2 py-0.5 rounded shrink-0`}>
-                    {typeLabel(port.type)}
-                  </span>
-                </div>
+                {thumb && ['port', 'embark', 'disembark', 'excursion'].includes(port.type) && (
+                  <div className="relative h-20 bg-vault">
+                    <img
+                      src={thumb}
+                      alt={port.name}
+                      className="w-full h-full object-cover opacity-50"
+                      onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none' }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-layer/80 to-transparent" />
+                    <div className="absolute bottom-2 left-3 right-3 flex justify-between items-end">
+                      <p className="text-vellum font-display text-sm font-light leading-tight">{port.name}</p>
+                      <span className={`${style.badge} font-ui font-ui-xlight text-[9px] tracking-wider uppercase px-2 py-0.5 rounded`}>
+                        {typeLabel(port.type)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <div className="p-4">
+                {!thumb || !['port', 'embark', 'disembark', 'excursion'].includes(port.type) ? (
+                  <div className="flex justify-between items-start mb-1.5">
+                    <p className="text-vellum font-display text-base font-light flex-1 mr-3">
+                      {port.name}
+                    </p>
+                    <span className={`${style.badge} font-ui font-ui-xlight text-[10px] tracking-wider uppercase px-2 py-0.5 rounded shrink-0`}>
+                      {typeLabel(port.type)}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="flex justify-between items-center mb-1">
                   <p className="text-dusk font-ui font-ui-xlight text-xs">
                     {formatDate(port.date)}
@@ -163,6 +206,7 @@ export default function VoyageScreen() {
                     {port.notes}
                   </p>
                 )}
+                </div>{/* /p-4 */}
               </div>
             )
           })}

@@ -11,6 +11,7 @@ const STATIC_ENDPOINTS = [
   '/api/bridge',
   '/api/weather',
   '/api/journal',
+  '/api/sea-letters',
 ]
 
 export async function prefetchVoyageData(): Promise<void> {
