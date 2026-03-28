@@ -390,7 +390,7 @@ export default function JournalScreen() {
                   touchZoom={false}
                   attributionControl={false}
                 >
-                  <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+                  <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" />
                   <CircleMarker
                     center={[lat, lon]}
                     radius={8}
@@ -590,7 +590,7 @@ export default function JournalScreen() {
                   touchZoom={false}
                   attributionControl={false}
                 >
-                  <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+                  <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" />
                   <CircleMarker
                     center={[entry.lat, entry.lon]}
                     radius={7}
