@@ -5,7 +5,11 @@ Conversation history persisted per user in SQLite — last 15 turns injected eac
 
 import asyncio
 import logging
+import os
+import shutil
 import sqlite3
+import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -13,6 +17,9 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from app.core.auth import get_email
+
+_executor = ThreadPoolExecutor(max_workers=2)
+_CLAUDE_CMD = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
 
 # ── Chat history DB ─────────────────────────────────────────────────
 _DB_PATH = Path(__file__).parent.parent.parent / "data" / "journal.db"
@@ -71,22 +78,12 @@ def _save_messages(email: str, user_msg: str, dani_reply: str):
 router = APIRouter()
 logger = logging.getLogger("reverie.chat")
 
-# ── Claude Code SDK import ──────────────────────────────────────────
-_SDK_AVAILABLE = False
-_sdk_query = None
-_sdk_options_cls = None
-_sdk_text_block = None
-
-try:
-    from claude_code_sdk import query as _q, ClaudeCodeOptions as _opts
-    from claude_code_sdk import TextBlock as _tb
-    _sdk_query = _q
-    _sdk_options_cls = _opts
-    _sdk_text_block = _tb
-    _SDK_AVAILABLE = True
-    logger.info("Claude Code SDK loaded — Dani AI chat enabled ($0 via Max plan)")
-except ImportError:
-    logger.warning("Claude Code SDK not available — using keyword fallback")
+# ── Claude CLI availability check ───────────────────────────────────
+_CLAUDE_AVAILABLE = bool(_CLAUDE_CMD and Path(_CLAUDE_CMD).exists())
+if _CLAUDE_AVAILABLE:
+    logger.info("claude CLI found at %s — Dani AI chat enabled ($0 via Max plan)", _CLAUDE_CMD)
+else:
+    logger.warning("claude CLI not found — using keyword fallback")
 
 
 class ChatRequest(BaseModel):
@@ -167,15 +164,6 @@ PROACTIVE BEHAVIOR:
 - If asked outside the trip scope, say: "That's outside what I have — want me to flag it for research?" """
 
 
-def _build_max_plan_env() -> dict[str, str]:
-    """Build env dict that strips ANTHROPIC_API_KEY so SDK uses Max plan OAuth."""
-    import os
-    env = dict(os.environ)
-    env.pop("ANTHROPIC_API_KEY", None)
-    env.pop("ANTHROPIC_BASE_URL", None)
-    return env
-
-
 def _build_system_prompt(history: list[dict]) -> str:
     """Append conversation history to the base system prompt."""
     if not history:
@@ -187,47 +175,39 @@ def _build_system_prompt(history: list[dict]) -> str:
     return DANI_SYSTEM_PROMPT + f"\n\nRECENT CONVERSATION (most recent last — use this as memory):\n{turns}\n"
 
 
-async def _call_dani_sdk(message: str, history: list[dict]) -> str:
-    """Call Claude via Code SDK with Dani persona. Returns response text."""
-    options = _sdk_options_cls(
-        system_prompt=_build_system_prompt(history),
-        model="haiku",
-        cwd="/home/john/Thunderbird",
-        permission_mode="bypassPermissions",
-        env=_build_max_plan_env(),
-    )
-
-    response_parts: list[str] = []
-
+def _call_dani_sync(message: str, history: list[dict]) -> str | None:
+    """Call claude CLI with Dani persona + history. Runs in thread pool."""
+    full_prompt = _build_system_prompt(history) + "\n\n---\n\n" + message
+    env = os.environ.copy()
+    env.pop("ANTHROPIC_API_KEY", None)
+    env.pop("ANTHROPIC_BASE_URL", None)
+    env["CLAUDE_CODE_ENTRYPOINT"] = "cli"
     try:
-        async with asyncio.timeout(20):
-            async for msg in _sdk_query(prompt=message, options=options):
-                if _sdk_text_block and isinstance(msg, _sdk_text_block):
-                    response_parts.append(msg.text)
-                elif hasattr(msg, "content"):
-                    content = msg.content
-                    if isinstance(content, list):
-                        for block in content:
-                            if _sdk_text_block and isinstance(block, _sdk_text_block):
-                                response_parts.append(block.text)
-                            elif hasattr(block, "text"):
-                                response_parts.append(block.text)
-                    elif isinstance(content, str):
-                        response_parts.append(content)
-    except asyncio.TimeoutError:
-        if response_parts:
-            return "".join(response_parts)
-        return "I'm taking a moment to look that up. Could you try again?"
+        result = subprocess.run(
+            [_CLAUDE_CMD, "--print", "--model", "haiku",
+             "--dangerously-skip-permissions", "--output-format", "text", "-p", "-"],
+            input=full_prompt,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=env,
+        )
+        if result.returncode != 0:
+            logger.error("claude CLI exit %d: %s", result.returncode, result.stderr[:200])
+            return None
+        return result.stdout.strip() or None
+    except subprocess.TimeoutExpired:
+        logger.warning("claude CLI timed out")
+        return None
     except Exception as e:
-        err_str = str(e)
-        # rate_limit_event is benign — return what we have
-        if "rate_limit_event" in err_str or "Unknown message type" in err_str:
-            if response_parts:
-                return "".join(response_parts)
-        logger.error("SDK call failed: %s", e)
+        logger.error("claude CLI error: %s", e)
         return None
 
-    return "".join(response_parts) if response_parts else None
+
+async def _call_dani(message: str, history: list[dict]) -> str | None:
+    """Async wrapper — runs blocking subprocess in thread pool."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(_executor, _call_dani_sync, message, history)
 
 
 # ── Keyword fallback ─────────────────────────────────────────────────
@@ -279,15 +259,15 @@ async def chat(req: ChatRequest, request: Request):
     email = get_email(request)
     history = _load_history(email)
 
-    # Try SDK first (free via Max plan)
-    if _SDK_AVAILABLE:
+    # Try claude CLI first (free via Max plan)
+    if _CLAUDE_AVAILABLE:
         try:
-            result = await _call_dani_sdk(req.message, history)
+            result = await _call_dani(req.message, history)
             if result:
                 _save_messages(email, req.message, result)
                 return {"role": "dani", "text": result}
         except Exception as e:
-            logger.warning("SDK chat failed, falling back to keywords: %s", e)
+            logger.warning("claude CLI chat failed, falling back to keywords: %s", e)
 
     # Keyword fallback
     reply = _keyword_response(req.message)
