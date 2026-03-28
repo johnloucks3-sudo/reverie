@@ -376,9 +376,33 @@ export default function JournalScreen() {
               </button>
             </div>
             {gpsStatus === 'found' && lat !== null && lon !== null && (
-              <p className="text-dusk font-ui font-ui-xlight text-[10px]">
-                {lat.toFixed(4)}, {lon.toFixed(4)}
-              </p>
+              <div className="relative rounded-lg overflow-hidden border border-ether/30" style={{ height: 100 }}>
+                <MapContainer
+                  key={`composer-${lat}-${lon}`}
+                  center={[lat, lon]}
+                  zoom={14}
+                  style={{ height: '100%', width: '100%' }}
+                  dragging={false}
+                  zoomControl={false}
+                  scrollWheelZoom={false}
+                  doubleClickZoom={false}
+                  keyboard={false}
+                  touchZoom={false}
+                  attributionControl={false}
+                >
+                  <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+                  <CircleMarker
+                    center={[lat, lon]}
+                    radius={8}
+                    pathOptions={{ color: '#E8C07A', fillColor: '#E8C07A', fillOpacity: 0.9, weight: 2 }}
+                  />
+                </MapContainer>
+                <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-vault/80 backdrop-blur-sm">
+                  <p className="text-ether font-ui font-ui-xlight text-[10px]">
+                    {lat.toFixed(4)}, {lon.toFixed(4)}
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* Camera / Photos */}

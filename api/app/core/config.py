@@ -28,5 +28,9 @@ class Settings(BaseSettings):
         "http://localhost:5173",
     ]
 
+    # Groq (Dani AI chat)
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
+
 
 settings = Settings()

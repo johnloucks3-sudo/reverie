@@ -1,25 +1,25 @@
-"""POST /api/chat — Dani Oracle via Claude Code SDK ($0, Max plan)
-Falls back to keyword responder if SDK unavailable.
-Conversation history persisted per user in SQLite — last 15 turns injected each call.
+"""POST /api/chat — Dani Oracle via Groq (llama-3.3-70b, ~1s, free tier)
+Conversation history persisted per user in SQLite — last 15 turns sent as messages array.
+Falls back to keyword responder if Groq unavailable.
 """
 
 import asyncio
 import logging
 import os
-import shutil
 import sqlite3
-import subprocess
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
+import httpx
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from app.core.auth import get_email
+from app.core.config import settings
 
-_executor = ThreadPoolExecutor(max_workers=2)
-_CLAUDE_CMD = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
+_GROQ_API_KEY = settings.groq_api_key
+_GROQ_MODEL = settings.groq_model
+_GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 # ── Chat history DB ─────────────────────────────────────────────────
 _DB_PATH = Path(__file__).parent.parent.parent / "data" / "journal.db"
@@ -78,12 +78,10 @@ def _save_messages(email: str, user_msg: str, dani_reply: str):
 router = APIRouter()
 logger = logging.getLogger("reverie.chat")
 
-# ── Claude CLI availability check ───────────────────────────────────
-_CLAUDE_AVAILABLE = bool(_CLAUDE_CMD and Path(_CLAUDE_CMD).exists())
-if _CLAUDE_AVAILABLE:
-    logger.info("claude CLI found at %s — Dani AI chat enabled ($0 via Max plan)", _CLAUDE_CMD)
+if _GROQ_API_KEY:
+    logger.info("Groq configured — Dani AI chat enabled (llama-3.3-70b)")
 else:
-    logger.warning("claude CLI not found — using keyword fallback")
+    logger.warning("GROQ_API_KEY not set — using keyword fallback")
 
 
 class ChatRequest(BaseModel):
@@ -164,50 +162,39 @@ PROACTIVE BEHAVIOR:
 - If asked outside the trip scope, say: "That's outside what I have — want me to flag it for research?" """
 
 
-def _build_system_prompt(history: list[dict]) -> str:
-    """Append conversation history to the base system prompt."""
-    if not history:
-        return DANI_SYSTEM_PROMPT
-    turns = "\n".join(
-        f"{'John' if h['role'] == 'user' else 'Dani'}: {h['content']}"
-        for h in history
-    )
-    return DANI_SYSTEM_PROMPT + f"\n\nRECENT CONVERSATION (most recent last — use this as memory):\n{turns}\n"
-
-
-def _call_dani_sync(message: str, history: list[dict]) -> str | None:
-    """Call claude CLI with Dani persona + history. Runs in thread pool."""
-    full_prompt = _build_system_prompt(history) + "\n\n---\n\n" + message
-    env = os.environ.copy()
-    env.pop("ANTHROPIC_API_KEY", None)
-    env.pop("ANTHROPIC_BASE_URL", None)
-    env["CLAUDE_CODE_ENTRYPOINT"] = "cli"
-    try:
-        result = subprocess.run(
-            [_CLAUDE_CMD, "--print", "--model", "haiku",
-             "--dangerously-skip-permissions", "--output-format", "text", "-p", "-"],
-            input=full_prompt,
-            capture_output=True,
-            text=True,
-            timeout=30,
-            env=env,
-        )
-        if result.returncode != 0:
-            logger.error("claude CLI exit %d: %s", result.returncode, result.stderr[:200])
-            return None
-        return result.stdout.strip() or None
-    except subprocess.TimeoutExpired:
-        logger.warning("claude CLI timed out")
-        return None
-    except Exception as e:
-        logger.error("claude CLI error: %s", e)
-        return None
+def _build_messages(message: str, history: list[dict]) -> list[dict]:
+    """Build proper OpenAI-format messages array with history."""
+    msgs = [{"role": "system", "content": DANI_SYSTEM_PROMPT}]
+    for h in history:
+        msgs.append({
+            "role": "user" if h["role"] == "user" else "assistant",
+            "content": h["content"],
+        })
+    msgs.append({"role": "user", "content": message})
+    return msgs
 
 
 async def _call_dani(message: str, history: list[dict]) -> str | None:
-    """Async wrapper — runs blocking subprocess in thread pool."""
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(_executor, _call_dani_sync, message, history)
+    """Call Groq with proper messages array. ~1s response."""
+    if not _GROQ_API_KEY:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.post(
+                _GROQ_URL,
+                headers={"Authorization": f"Bearer {_GROQ_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": _GROQ_MODEL,
+                    "messages": _build_messages(message, history),
+                    "max_tokens": 600,
+                    "temperature": 0.7,
+                },
+            )
+            resp.raise_for_status()
+            return resp.json()["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        logger.error("Groq call failed: %s", e)
+        return None
 
 
 # ── Keyword fallback ─────────────────────────────────────────────────
@@ -259,15 +246,15 @@ async def chat(req: ChatRequest, request: Request):
     email = get_email(request)
     history = _load_history(email)
 
-    # Try claude CLI first (free via Max plan)
-    if _CLAUDE_AVAILABLE:
+    # Try Groq first (~1s, free tier, proper message memory)
+    if _GROQ_API_KEY:
         try:
             result = await _call_dani(req.message, history)
             if result:
                 _save_messages(email, req.message, result)
                 return {"role": "dani", "text": result}
         except Exception as e:
-            logger.warning("claude CLI chat failed, falling back to keywords: %s", e)
+            logger.warning("Groq chat failed, falling back to keywords: %s", e)
 
     # Keyword fallback
     reply = _keyword_response(req.message)
