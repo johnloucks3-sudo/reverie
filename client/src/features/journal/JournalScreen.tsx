@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { MapContainer, TileLayer, CircleMarker } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 import { api } from '@/shared/lib/api'
 import BottomNav from '@/shared/ui/BottomNav'
 
@@ -550,13 +552,36 @@ export default function JournalScreen() {
             </p>
 
             {/* Location */}
-            {entry.location_name && (
-              <p className="text-ether font-ui font-ui-xlight text-xs mb-1">
-                {entry.location_name}
-                {entry.lat !== null && entry.lon !== null && (
-                  <span className="text-ember ml-1">({entry.lat.toFixed(2)}, {entry.lon.toFixed(2)})</span>
+            {entry.lat !== null && entry.lon !== null && (
+              <div className="relative mb-2 rounded-lg overflow-hidden border border-between" style={{ height: 100 }}>
+                <MapContainer
+                  center={[entry.lat, entry.lon]}
+                  zoom={13}
+                  style={{ height: '100%', width: '100%' }}
+                  dragging={false}
+                  zoomControl={false}
+                  scrollWheelZoom={false}
+                  doubleClickZoom={false}
+                  keyboard={false}
+                  touchZoom={false}
+                  attributionControl={false}
+                >
+                  <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+                  <CircleMarker
+                    center={[entry.lat, entry.lon]}
+                    radius={7}
+                    pathOptions={{ color: '#E8C07A', fillColor: '#E8C07A', fillOpacity: 0.9, weight: 2 }}
+                  />
+                </MapContainer>
+                {entry.location_name && (
+                  <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-vault/80 backdrop-blur-sm">
+                    <p className="text-ether font-ui font-ui-xlight text-[10px] truncate">{entry.location_name}</p>
+                  </div>
                 )}
-              </p>
+              </div>
+            )}
+            {!entry.lat && entry.location_name && (
+              <p className="text-ether font-ui font-ui-xlight text-xs mb-1">{entry.location_name}</p>
             )}
 
             {/* Photos */}
