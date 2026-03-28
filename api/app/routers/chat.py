@@ -1,14 +1,72 @@
 """POST /api/chat — Dani Oracle via Claude Code SDK ($0, Max plan)
 Falls back to keyword responder if SDK unavailable.
+Conversation history persisted per user in SQLite — last 15 turns injected each call.
 """
 
 import asyncio
 import logging
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from app.core.auth import get_email
+
+# ── Chat history DB ─────────────────────────────────────────────────
+_DB_PATH = Path(__file__).parent.parent.parent / "data" / "journal.db"
+
+
+def _init_chat_db():
+    _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(_DB_PATH))
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+_init_chat_db()
+
+
+def _load_history(email: str, limit: int = 15) -> list[dict]:
+    """Load last N turns for this user, oldest first."""
+    conn = sqlite3.connect(str(_DB_PATH))
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        """SELECT role, content FROM (
+               SELECT role, content, created_at FROM chat_messages
+               WHERE user_email = ?
+               ORDER BY created_at DESC LIMIT ?
+           ) ORDER BY created_at ASC""",
+        (email, limit),
+    ).fetchall()
+    conn.close()
+    return [{"role": r["role"], "content": r["content"]} for r in rows]
+
+
+def _save_messages(email: str, user_msg: str, dani_reply: str):
+    """Persist both sides of an exchange."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = sqlite3.connect(str(_DB_PATH))
+    conn.execute(
+        "INSERT INTO chat_messages (user_email, role, content, created_at) VALUES (?, ?, ?, ?)",
+        (email, "user", user_msg, now),
+    )
+    conn.execute(
+        "INSERT INTO chat_messages (user_email, role, content, created_at) VALUES (?, ?, ?, ?)",
+        (email, "dani", dani_reply, now),
+    )
+    conn.commit()
+    conn.close()
 
 router = APIRouter()
 logger = logging.getLogger("reverie.chat")
@@ -118,10 +176,21 @@ def _build_max_plan_env() -> dict[str, str]:
     return env
 
 
-async def _call_dani_sdk(message: str) -> str:
+def _build_system_prompt(history: list[dict]) -> str:
+    """Append conversation history to the base system prompt."""
+    if not history:
+        return DANI_SYSTEM_PROMPT
+    turns = "\n".join(
+        f"{'John' if h['role'] == 'user' else 'Dani'}: {h['content']}"
+        for h in history
+    )
+    return DANI_SYSTEM_PROMPT + f"\n\nRECENT CONVERSATION (most recent last — use this as memory):\n{turns}\n"
+
+
+async def _call_dani_sdk(message: str, history: list[dict]) -> str:
     """Call Claude via Code SDK with Dani persona. Returns response text."""
     options = _sdk_options_cls(
-        system_prompt=DANI_SYSTEM_PROMPT,
+        system_prompt=_build_system_prompt(history),
         model="haiku",
         cwd="/home/john/Thunderbird",
         permission_mode="bypassPermissions",
@@ -207,17 +276,31 @@ def _keyword_response(msg: str) -> str:
 
 @router.post("")
 async def chat(req: ChatRequest, request: Request):
-    get_email(request)
+    email = get_email(request)
+    history = _load_history(email)
 
     # Try SDK first (free via Max plan)
     if _SDK_AVAILABLE:
         try:
-            result = await _call_dani_sdk(req.message)
+            result = await _call_dani_sdk(req.message, history)
             if result:
+                _save_messages(email, req.message, result)
                 return {"role": "dani", "text": result}
         except Exception as e:
             logger.warning("SDK chat failed, falling back to keywords: %s", e)
 
     # Keyword fallback
     reply = _keyword_response(req.message)
+    _save_messages(email, req.message, reply)
     return {"role": "dani", "text": reply}
+
+
+@router.delete("/history")
+async def clear_history(request: Request):
+    """Clear conversation history for this user (fresh start)."""
+    email = get_email(request)
+    conn = sqlite3.connect(str(_DB_PATH))
+    conn.execute("DELETE FROM chat_messages WHERE user_email = ?", (email,))
+    conn.commit()
+    conn.close()
+    return {"cleared": True}
