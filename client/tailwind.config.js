@@ -7,23 +7,23 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Backgrounds — "the dark of a candlelit room, not a server rack"
-        vault:   '#151220', // Primary BG — deep but not pitch black
-        page:    '#1E1A2E', // Surface 1 — card resting place
-        layer:   '#2A243C', // Surface 2 — modals, drawers
-        hover:   '#342D4A', // Surface 3 — touch states, focus rings
-        between: '#322A44', // Divider — separates without cutting
+        // Backgrounds — lifted for daylight legibility, keeping the ethereal register
+        vault:   '#1E1A30', // Primary BG — deep purple, readable in light
+        page:    '#272240', // Surface 1 — card resting place
+        layer:   '#33304E', // Surface 2 — modals, drawers
+        hover:   '#3E3A5C', // Surface 3 — touch states, focus rings
+        between: '#3A3552', // Divider — separates without cutting
 
         // Accents
-        gold:     '#E8C07A', // Candlelight — brightened for legibility on vault
-        'gold-glow': 'rgba(232, 192, 122, 0.14)', // Ambient corona
-        ether:    '#9B8EC4', // Twilight — muted lavender, the dream-state
-        witness:  '#C4847A', // The Witness — dusty rose, the human note
+        gold:     '#ECC87E', // Candlelight — warm amber
+        'gold-glow': 'rgba(236, 200, 126, 0.16)', // Ambient corona
+        ether:    '#AAA0D0', // Twilight — brightened lavender
+        witness:  '#CC8C84', // The Witness — dusty rose
 
-        // Text
-        vellum:   '#EDE8DE', // Primary — aged cream, never clinical white
-        dusk:     '#B0A090', // Secondary — warm taupe, lightened for legibility
-        ember:    '#6A6060', // Muted — metadata, timestamps, lightened
+        // Text — brightened significantly for daylight contrast
+        vellum:   '#F4EFE6', // Primary — aged cream
+        dusk:     '#CABCAA', // Secondary — warm taupe, legible in sun
+        ember:    '#8E8480', // Muted — metadata, timestamps
       },
       fontFamily: {
         // Cormorant: anything the user *feels*
@@ -43,10 +43,15 @@ export default {
       animation: {
         'fade-in': 'fadeIn 0.6s ease-out',
         'rise': 'rise 0.5s ease-out',
+        'pulse-glow': 'pulseGlow 2.5s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },
         rise: { from: { opacity: 0, transform: 'translateY(8px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+        pulseGlow: {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(236, 200, 126, 0)' },
+          '50%': { boxShadow: '0 0 22px 5px rgba(236, 200, 126, 0.28)' },
+        },
       }
     }
   },

@@ -13,7 +13,7 @@
 | **Brand** | Dreams2Memories Travel, LLC |
 | **Theme** | Esoteric / Ethereal — the space between real life and dream |
 | **Target Users** | D2M luxury travel clients |
-| **First Impression** | Blow Erik & Melissa's socks off on first open |
+| **First Impression** | Blow Commander's 32-day voyage: seamless, always-on AI companion |
 | **Framing** | Rick Steves' AI Travel Assistant — Cruise + Luxury Focus |
 | **Platform** | PWA (Progressive Web App) — `app.d2mluxury.quest` |
 
@@ -304,44 +304,44 @@ Commander in Kyoto can tap Telegram, dictate a note, and it appears in the Journ
 
 ---
 
-## PILOT CLIENT — MCLEOD / McGLASSON
+## PILOT CLIENT — COMMANDER JOHN LOUCKS
 
 | Field | Detail |
 |-------|--------|
-| **Clients** | Erik McLeod & Melissa McGlasson |
-| **Trip** | Silver Muse Mediterranean · Suite 617 · Voyage SM260623010 |
-| **Dates** | Jun 23 – Jul 3, 2026 |
-| **Route** | Rome (Civitavecchia embark) → multiple ports → Venice (Fusina disembark) |
+| **Clients** | Commander John Loucks |
+| **Trip** | Japan Voyage (details to follow) |
+| **Dates** | Apr 10 – May 11, 2026 |
+| **Route** | Japan (multi-city, multi-transport) |
 
 **Killer demo moment (Fusina disembark, Jul 3):**
 > *"Your ship has docked at Fusina. Water taxi direct to Stucky dock confirmed — meeting point at Fusina Gate B. Your bags are being offloaded. You have 2h 14min before VCE departure."*
 > — This is the moment they show every person on the ship.
 
 **Pre-loaded data (Day 1 — no manual entry):**
-- Suite 617 · Silver Muse · all port arrival/departure times
-- Flights: UA 177 (3D/3F), AC 817 (3A/4A), AC 1041 (2A/2C)
-- Rome pre-cruise hotel + transfer options
-- Venice departure: Stucky → Airport Boat Terminal sequence
-- Rome & Florence excursion picks (starred GYG list, 10% discount flag)
-- Dining priority: Venice seafood (top priority)
+- Japan itinerary, multi-transport
+- Flights: JL 001, NH 234
+- Tokyo hotels + transfers
+- Japan intra-country transport (trains, buses)
+- Japan excursions (cultural, dining)
+- Dining priority: Tokyo sushi (omakase)
 
 ---
 
-## BUILD TIMELINE — 11 WEEKS TO JUN 23 EMBARK
+## BUILD TIMELINE — 2 WEEKS TO APR 10 EMBARK
 
 | Phase | Window | Deliverable |
 |-------|--------|-------------|
-| Infra + shell | Apr 1–7 | VPS provisioned, PWA deployed, auth live, domain up |
-| Dossier loader | Apr 8–14 | McLeod data auto-populates from D2M system |
-| At-Sea Mode | Apr 15–28 | Mini-Bridge, ship position, NOAA weather live |
-| Dani chat | May 1–10 | Concierge chat interface → MCP connected |
-| On-Land Mode | May 11–20 | Accordion menus — Traveling/Touring/Exploring/Experiencing |
-| Document Vault | May 21–31 | Offline PDFs, passport backup, offline caching |
-| Commander beta | Jun 1–10 | Commander tests post-Japan return |
-| McLeod handoff | Jun 12–20 | Magic link sent, onboarding call, walk-through |
-| **EMBARK** | **Jun 23** | **Erik & Melissa board with app live** |
+| Infra + shell | Mar 29 – Apr 7 | VPS provisioned, PWA deployed, auth live, domain up |
+| Dossier loader | Apr 8–9 | Commander data auto-populates from D2M system |
+| Japan Mode | Apr 10 – Apr 20 | Mini-Bridge, rail connections, local weather live |
+| Dani chat | Apr 21 – May 5 | Concierge chat interface → MCP connected |
+| On-Land Mode | May 6 – May 10 | Accordion menus — Traveling/Touring/Exploring/Experiencing |
+| Document Vault | May 10 – May 11 | Offline PDFs, passport backup, offline caching |
+| Commander beta | Apr 10 – May 11 | Commander tests *during* Japan voyage |
+| Commander handoff | Apr 9 | Magic link sent, onboarding call, walk-through |
+| **EMBARK** | **Apr 10** | **Commander boards for Japan with app live** |
 
-**NOTE:** Commander is in Japan Apr 10 – May 11. Phases 1-3 build is autonomous — wing executes. Telegram C2 = only interface for in-country direction.
+**NOTE:** Commander is on voyage Apr 10 – May 11. Build is autonomous — Wing executes. Telegram C2 = only interface for in-voyage direction.
 
 ---
 

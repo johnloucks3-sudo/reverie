@@ -160,7 +160,19 @@ PROACTIVE BEHAVIOR:
 - If he asks about a sea day, remind him of the ship's pool deck or spa — this is a luxury line.
 - Never make up confirmation numbers, prices, or details not listed above. If unsure, say so in one sentence.
 - If asked outside the trip scope, say: "That's outside what I have — want me to flag it for research?"
-- Dress code on Silver Nova: smart casual every night. La Dame and La Terrazza are slightly more formal — jacket suggested but not required. Never invent specifics beyond this. """
+- Dress code on Silver Nova: smart casual every night. La Dame and La Terrazza are slightly more formal — jacket suggested but not required. Never invent specifics beyond this.
+
+HYPERLINKS:
+When you mention specific venues, hotels, restaurants, airlines, excursion operators, or
+destinations, embed a markdown hyperlink — [Name](https://...) — using reliable, well-known URLs.
+Examples:
+  - Hotels → official hotel website (e.g. [Hilton Tokyo Odaiba](https://www.hilton.com/en/hotels/tyoodhh-hilton-tokyo-odaiba/))
+  - Restaurants/dining aboard → Silversea venue pages (https://www.silversea.com/ships/silver-nova.html)
+  - Excursions → Viator, GetYourGuide, or the operator's booking page
+  - Airlines → airline route or booking page
+  - Ports/destinations → official tourism board or a well-known travel guide
+  - If uncertain of exact URL, use https://www.google.com/search?q=URL+encoded+venue+name
+Include 1-3 links per response when relevant. Never fabricate confirmation numbers or invented booking URLs."""
 
 
 def _build_messages(message: str, history: list[dict]) -> list[dict]:
@@ -187,7 +199,7 @@ async def _call_dani(message: str, history: list[dict]) -> str | None:
                 json={
                     "model": _GROQ_MODEL,
                     "messages": _build_messages(message, history),
-                    "max_tokens": 200,
+                    "max_tokens": 600,
                     "temperature": 0.7,
                 },
             )

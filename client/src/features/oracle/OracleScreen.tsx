@@ -7,6 +7,28 @@ interface Message {
   text: string
 }
 
+// Parse markdown links [text](url) → clickable anchors
+function renderDaniText(text: string) {
+  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g)
+  return parts.map((part, i) => {
+    const m = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
+    if (m) {
+      return (
+        <a
+          key={i}
+          href={m[2]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gold underline underline-offset-2 hover:text-ether transition-colors duration-200"
+        >
+          {m[1]}
+        </a>
+      )
+    }
+    return <span key={i}>{part}</span>
+  })
+}
+
 export default function OracleScreen() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -18,6 +40,8 @@ export default function OracleScreen() {
   const [loading, setLoading] = useState(false)
   const [loadingDots, setLoadingDots] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  const lastDaniIdx = messages.reduce((acc, m, i) => m.role === 'dani' ? i : acc, -1)
 
   // Cycling dots for loading indicator: . .. ...
   useEffect(() => {
@@ -94,15 +118,22 @@ export default function OracleScreen() {
               className={`rounded-xl p-4 max-w-[85%] ${
                 msg.role === 'user'
                   ? 'bg-hover border border-between'
-                  : 'bg-layer border border-between'
+                  : idx === lastDaniIdx
+                    ? 'bg-layer border border-gold/30 animate-pulse-glow'
+                    : 'bg-layer border border-between'
               }`}
             >
               {msg.role === 'dani' && (
                 <p className="text-gold font-ui font-ui-xlight text-[10px] tracking-wider uppercase mb-2">Dani</p>
               )}
               <p className="text-vellum font-ui font-ui-light text-sm leading-relaxed whitespace-pre-line">
-                {msg.text}
+                {msg.role === 'dani' ? renderDaniText(msg.text) : msg.text}
               </p>
+              {msg.role === 'dani' && (
+                <p className="text-ember font-ui font-ui-xlight text-[9px] mt-3 pt-2 border-t border-between/50 tracking-wide">
+                  AI response · Dreams2Memories Travel, LLC · Verify details independently
+                </p>
+              )}
             </div>
           </div>
         ))}
